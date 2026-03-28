@@ -1,0 +1,62 @@
+---
+description: React component patterns for Cotação IBOV
+globs: src/**/*.tsx
+alwaysApply: false
+---
+
+# React Component Patterns
+
+## Client vs Server
+- Add `"use client"` only when the component uses state, effects, or event handlers
+- Pages and layouts are Server Components by default
+
+## State Pattern for API Calls
+Always use three state variables for async operations:
+
+```typescript
+const [result, setResult] = useState<BrapiResult | null>(null);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+```
+
+Reset all three at the start of each request:
+```typescript
+setLoading(true);
+setError(null);
+setResult(null);
+```
+
+## Error Handling in Fetch
+```typescript
+// ✅ GOOD
+try {
+  const res = await fetch("/api/quote?code=...");
+  const data = await res.json();
+  if (!res.ok) { setError(data.error ?? "Erro ao buscar cotação."); return; }
+  setResult(data.results[0]);
+} catch {
+  setError("Falha na comunicação com o servidor.");
+} finally {
+  setLoading(false);
+}
+```
+
+## Small Presentational Components
+Define small sub-components at the bottom of the file (not in separate files unless reused):
+
+```typescript
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-6 py-4 flex flex-col gap-1">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+  );
+}
+```
+
+## Conditional Variation (positive/negative)
+```typescript
+// ✅ Use emerald for positive, red for negative
+className={isPositive ? "text-emerald-400" : "text-red-400"}
+```

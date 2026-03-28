@@ -1,0 +1,38 @@
+
+Projeto que vê cotação na bolsa:
+https://github.com/adrianodonisete/node_price/blob/master/controllers/priceController.js
+
+API para buscar cotação da bolsa:
+https://www.alphavantage.co/query?function=GLOBAL_QUOTE&apikey=NP75EV2DGLZWIGHM&symbol=BBAS3.SA
+
+
+
+Brapi - API para buscar cotação da bolsa:
+https://brapi.dev/api/quote/PETR4
+
+Documentação da api Brapi:
+https://brapi.dev/docs
+https://brapi.dev/docs/acoes
+
+
+
+
+Como pegar informações do indice IBOV:
+https://brapi.dev/api/quote/%5EBVSP
+
+
+
+O projeto deve ser feito usando Next.js no frontend e Node.js no backend.
+Usar api Brapi para buscar cotação da bolsa.
+Será publicado via Vercel (detalhar o passo a passo para publicar o projeto).
+
+Documentação da api Brapi:
+https://brapi.dev/docs
+https://brapi.dev/docs/acoes
+
+Criar uma tela com um formulário com o campo de texto name="code" label="Ação/FII" e o botão "buscar".
+Ao clicar no botão buscar, vai buscar na api do "Brapi" a cotação atual do código digitado.
+URL: https://brapi.dev/api/quote/[code]
+
+
+

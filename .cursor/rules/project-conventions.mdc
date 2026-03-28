@@ -1,0 +1,34 @@
+---
+description: Core project conventions for Cotação IBOV
+alwaysApply: true
+---
+
+# Project Conventions
+
+## Stack
+- Next.js 16 App Router + TypeScript 5 + Tailwind CSS 4
+- React 19 client components use `"use client"` directive
+- All shared TypeScript types live in `src/types/`
+
+## Language & Locale
+- UI text is in **Portuguese (pt-BR)**
+- All number, currency and percentage formatting uses `pt-BR` locale:
+
+```typescript
+// ✅ Currency
+value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+
+// ✅ Percentage
+`${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
+```
+
+## Design System
+- Background: `bg-gray-950` (page) / `bg-gray-900` (cards)
+- Accent / positive: `text-emerald-400`, `bg-emerald-500`
+- Negative / error: `text-red-400`, `bg-red-900/40 border-red-700`
+- Text hierarchy: `text-white` → `text-gray-400` → `text-gray-500`
+- Borders: `border-gray-800` / `border-gray-700`
+
+## Environment Variables
+- `BRAPI_TOKEN` in `.env.local` — never expose to the client, read only in API Routes
+- `.env.local` is gitignored by default — never commit it
