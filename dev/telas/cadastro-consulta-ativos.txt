@@ -1,0 +1,82 @@
+Instalar o pacote "supabase" para acessar o banco de dados do Supabase (npm install @supabase/supabase-js).
+Primeira ação é tentar acessar o banco de dados do Supabase e criar a tabela "ativos".
+Se não conseguir acessar ou criar a tabela, informar o erro e parar o projeto.
+
+
+Usar o banco de dados Supabase para armazenar os dados.
+Banco de dados já criado no Supabase, dados de conexão já configurados no arquivo ".env.local".
+Criar um script para criar a tabela "ativos" no banco de dados e salvar o script em um arquivo "create_table_ativos.sql" no diretório "db/supabase/".
+Criar uma tabela "ativos" no banco de dados com os campos: 
+id (int - auto incremento), code (varchar 20), info (varchar 255), type (varchar 20), weight (numeric 10,2).
+PRIMARY KEY: id.
+NOT NULL: id, code, info, type, weight.
+UNIQUE: code.
+INDEX: code.
+
+
+Criar um arquivo de variáries globais "constants.ts" para armazenar as variáries globais do projeto (salvar no diretório "src/lib/constants.ts").
+As variáries globais são:
+    - URL_API_BRAPI: "https://brapi.dev/api/quote/";
+    - TYPES_ASSETS: {"acao": "Ação", "fii": "FII", "stock": "Stock", "reit": "REIT"};
+    - criar outras variáries globais conforme necessário.
+
+
+Criar uma tela de cadastro em lote de ativos (ações/fiis/stocks/reits).
+Nome da tela no menu de navegação: "Cadastro em Lote de Ativos".
+No formulário deve ter um textarea name="list_assets" label="Lista de Ativos" e o botão "cadastrar".
+Cada linha do textarea vai ser um ativo diferente, cada coluna é uma informação do ativo, separado por ponto e vírgula.
+As colunas são: 
+    código (string), info (string), tipo (string) [valores: acao, fii, stock, reit], peso (float).
+Ao clicar no botão cadastrar, vai cadastrar os ativos no banco de dados (tabela "ativos").
+    Usar TRIM em todos os campos para remover espaços em branco no início e no fim.
+    Salvar o campo "code" em maiúsculo.
+    Usuários brasileiros tendem a usar vírgula como separador decimal (1,5). O parser deve aceitar tanto . quanto , no campo peso.
+    Ignorar linhas em branco e linhas que começam com "#".
+    Ignorar linhas com mais ou menos de 4 colunas.
+    Ignorar linhas com valores nulos ou vazios ou inválidos (peso não numérico, tipo não existente, código não string, etc).
+    Usar a constante "TYPES_ASSETS" para validar o tipo de ativo.
+    Não permitir duplicidades de códigos (code) de ativos cadastrados.
+        Se encontrar duplicidade, ignorar a linha;
+        Os ativos não duplicados devem ser cadastrados normalmente.
+
+Preview antes de confirmar o cadastro
+Antes de salvar, exibir uma tabela de preview com os ativos que serão cadastrados, para o usuário confirmar.
+
+No final, informar o total de ativos cadastrados, o total de ativos duplicados encontrados e o total de linhas ignoradas.
+
+Rotas para cadastro, consulta, edição e exclusão de ativos:
+    POST   /api/assets          → cadastro em lote
+    GET    /api/assets?type=acao → listagem filtrada
+    PUT    /api/assets/[id]     → edição
+    DELETE /api/assets/[id]     → exclusão
+
+
+Criar uma tela para exibir os ativos.
+Nome da tela no menu de navegação: "Listagem de Ativos".
+Essa tela não vai ter nenhuma operação com a API Brapi.
+No formulário de pesquisa dever ter a opção de filtrar por tipo de ativo 
+    (default: acao) e (opções: acao, fii, stock, reit) - não permitir filtrar por "todos".
+Ao carregar sem filtro, exibe apenas os ativos do tipo "acao".
+Ao clicar no botão "buscar", vai exibir os ativos cadastrados no banco de dados filtrados pelo tipo de ativo, ordenados pelo campo "peso" (float) em ordem decrescente.
+Se não tiver nenhum ativo cadastrado no tipo selecionado, exibir a mensagem "Nenhum ativo cadastrado".
+
+Não deve ter paginação, pois não terá muitos resultados.
+Mostrar total de ativos encontrados pelo tipo selecionado.
+Em cada linha dos ativos, deve ter os seguintes colunas:
+- Código (string): código do ativo.
+- Informações (string): informação do ativo.
+- Tipo (string): tipo de ativo.
+- Peso (float): peso do ativo.
+- Peso % (float): peso do ativo em porcentagem ([peso % = peso / peso total] o peso % é a soma dos pesos dos ativos do tipo selecionado).
+- Ações:
+    - Editar: vai abrir um modal com o formulário de edição do ativo (após salvar, atualizar a lista de ativos para recalcular os pesos %).
+        - Campos editáveis: informações e peso.
+    - Excluir: vai abrir um modal de confirmação, se confirmar, vai excluir o ativo do banco de dados (após excluir, atualizar a lista de ativos para recalcular os pesos %).
+
+
+O menu de navegação deve ficar no topo das telas.
+Adicionar o menu de navegação no arquivo "src/app/layout.tsx" que será usado como layout global do projeto.
+Links do menu de navegação:
+    - Cotação IBOV: vai pra tela de "cotação atual de ações e FIIs da B3" (tela inicial já existente).
+    - Cadastro em Lote de Ativos: vai pra tela de cadastro em lote de ativos.
+    - Listagem de Ativos: vai pra tela de listagem de ativos.

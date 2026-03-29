@@ -55,7 +55,7 @@ export default function Home() {
   const isPositive = result ? result.regularMarketChangePercent >= 0 : true;
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center px-4 py-16">
+    <main className="flex-1 flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-xl">
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-white">

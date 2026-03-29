@@ -36,3 +36,7 @@ URL: https://brapi.dev/api/quote/[code]
 
 
 
+
+supabase login
+supabase init
+supabase link --project-ref yoacquheehhdapikjmyn
