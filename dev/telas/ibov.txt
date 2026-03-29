@@ -35,8 +35,3 @@ Ao clicar no botão buscar, vai buscar na api do "Brapi" a cotação atual do c�
 URL: https://brapi.dev/api/quote/[code]
 
 
-
-
-supabase login
-supabase init
-supabase link --project-ref yoacquheehhdapikjmyn
