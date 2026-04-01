@@ -7,6 +7,8 @@ const links = [
 	{ href: '/', label: 'Cotação IBOV' },
 	{ href: '/cadastro-ativos', label: 'Cadastro de Ativos' },
 	{ href: '/listagem-ativos', label: 'Listagem de Ativos' },
+	{ href: '/cadastro-aportes', label: 'Cadastro Aportes' },
+	{ href: '/listagem-aportes', label: 'Listagem de Aportes' },
 ];
 
 export default function Navbar() {

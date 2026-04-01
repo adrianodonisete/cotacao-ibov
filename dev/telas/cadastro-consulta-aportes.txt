@@ -1,0 +1,68 @@
+Criar uma tela de cadastro em lote de aportes.
+Nome da tela no menu de navegação: "Cadastro Aportes".
+No formulário deve ter um textarea name="list_aportes" label="Lista de Aportes" e o botão "cadastrar".
+Cada linha do textarea vai ser um aporte diferente, cada coluna é uma informação do aporte, separado por ponto e vírgula.
+As colunas são: 
+    código (string), quantidade (float), valor total (float), data da operação (date formatos aceitos: dd/mm/yyyy e yyyy-mm-dd)
+
+    
+Ao clicar no botão cadastrar, vai cadastrar os aportes no banco de dados (tabela "aportes").
+    Usar TRIM em todos os campos para remover espaços em branco no início e no fim.
+    Salvar o campo "code" em maiúsculo.
+    Usuários brasileiros tendem a usar vírgula como separador decimal (1,5). O parser deve aceitar tanto . quanto , no campo quantidade e valor total.
+    Ignorar linhas em branco e linhas que começam com "#".
+    Ignorar linhas com mais ou menos de 4 colunas.
+    Ignorar linhas com valores nulos ou vazios ou inválidos (quantidade não numérica, valor total não numérico, data da operação não string, etc).
+    Não permitir duplicidades de aportes (tem o UNIQUE dos campos code, qtd, date_operation na tabela "aportes").
+        Se encontrar duplicidade, ignorar a linha;
+        Os aportes não duplicados devem ser cadastrados normalmente.
+
+
+Preview antes de confirmar o cadastro.
+Antes de salvar, exibir uma tabela de preview com os aportes que serão cadastrados, para o usuário confirmar.
+
+No final, informar o total de aportes cadastrados, o total de aportes duplicados encontrados e o total de linhas ignoradas.
+
+
+Criar uma tela para exibir os aportes.
+Nome da tela no menu de navegação: "Listagem de Aportes".
+Essa tela não vai ter nenhuma operação com a API Brapi.
+No formulário de pesquisa dever ter a opção de filtrar por:
+  - Tipo do ativo (select - opções: todos, acao, fii, stock, reit - constante "TYPES_ASSETS") valor default: todos
+    - Se opção igual a "todos", não filtrar por tipo.
+    - Se "tipo de ativo" for selecionado, filtrar pelos códigos que pertencem ao tipo, na query utilizar code IN (code1, code2, code3, ...).
+  - código (string)
+  - data da operação (input type="date" data inicial e data final) valor default: day -30 and today
+  - Ordenar por (select - opções code, date_operation - asc ou desc) valor default: date_operation (desc)
+
+Ao carregar sem filtro, mostrar apenas os registros dos últimos 30 dias (considerar o valor padrão do filtro data da operação).
+Ao clicar no botão "buscar", vai exibir os aportes cadastrados no banco de dados filtrados pelo código e data da operação, ordenados pelo campo "date_operation" (date) em ordem decrescente.
+Se não tiver resultados, exibir a mensagem "Nenhum aporte encontrado com esses filtros".
+
+Deve ter paginação, opção de 10, 20, 50 e 100 resultados por página (default: 20).
+Mostrar total de aportes encontrados.
+Em cada linha dos aportes, deve ter os seguintes colunas:
+- Tipo do ativo (string): Usar a constante "TYPES_ASSETS" para saber o tipo de ativo (code).
+- Código (string): código do aporte.
+- Quantidade (float): quantidade do aporte (se não tiver casa decimal, considerar 0 casa decimal, se sim, exibir 4 casas decimais).
+- Valor Total (float): valor total do aporte (exibir 2 casas decimais).
+- Valor Unitário (float): valor unitário do aporte (value_total / qtd), se qtd for 0, exibir 0 (exibir 2 casas decimais).
+- Data da Operação (date parse to dd/mm/yyyy): data da operação.
+- Ações: editar e excluir.
+    - Editar: vai abrir um modal com o formulário de edição do aporte (após salvar, atualizar a lista de aportes para recalcular o valor unitário).
+        - Campos editáveis: quantidade, valor total e data da operação (input type="date" parse to yyyy-mm-dd).
+    - Excluir: vai abrir um modal de confirmação, se confirmar, vai excluir o aporte do banco de dados 
+        - Após excluir, atualizar a lista de aportes, para atualizar o total de aportes encontrados.
+
+
+Rotas para cadastro, consulta, edição e exclusão de aportes:
+    POST   /api/aportes           → cadastro em lote
+    GET    /api/aportes (filters) → listagem filtrada
+    PUT    /api/aportes/[id]      → edição
+    DELETE /api/aportes/[id]      → exclusão
+
+
+Adicionar o menu de navegação nas duas telas criadas.
+Add os links Links das telas criadas no menu de navegação:
+    - Cadastro Aportes: vai pra tela de "Cadastro Aportes".
+    - Listagem de Aportes: vai pra tela de "Listagem de Aportes".
