@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TYPES_ASSETS } from "@/lib/constants";
+import { TYPES_ASSETS, CURRENCIES } from "@/lib/constants";
 import { Aporte } from "@/types/aporte";
 import { Asset } from "@/types/asset";
 
@@ -37,10 +37,20 @@ function formatValue(value: number): string {
   });
 }
 
-function calcUnitValue(valueTotal: number, qtd: number): string {
+function formatWithCurrency(value: number, currency: string): string {
+  const formatted = formatValue(value);
+  return currency === "USD" ? `US$ ${formatted}` : `R$ ${formatted}`;
+}
+
+function formatDolarValue(dolarValue: number, currency: string): string {
+  if (currency !== "USD" || Number(dolarValue) <= 0) return "—";
+  return `R$ ${formatValue(dolarValue)}`;
+}
+
+function calcUnitValue(valueTotal: number, qtd: number, currency: string): string {
   const q = Number(qtd);
-  if (q === 0) return "0,00";
-  return formatValue(Number(valueTotal) / q);
+  if (q === 0) return formatWithCurrency(0, currency);
+  return formatWithCurrency(Number(valueTotal) / q, currency);
 }
 
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
@@ -50,6 +60,8 @@ export default function ListagemAportes() {
   const [filterCode, setFilterCode] = useState("");
   const [filterDateStart, setFilterDateStart] = useState(daysAgoStr(30));
   const [filterDateEnd, setFilterDateEnd] = useState(todayStr());
+  const [filterCurrency, setFilterCurrency] = useState("todos");
+  const [filterInfo, setFilterInfo] = useState("");
   const [sortBy, setSortBy] = useState("date_operation");
   const [sortDir, setSortDir] = useState("desc");
   const [perPage, setPerPage] = useState(20);
@@ -67,6 +79,9 @@ export default function ListagemAportes() {
   const [editQtd, setEditQtd] = useState("");
   const [editValueTotal, setEditValueTotal] = useState("");
   const [editDateOperation, setEditDateOperation] = useState("");
+  const [editCurrency, setEditCurrency] = useState("BRL");
+  const [editDolarValue, setEditDolarValue] = useState("");
+  const [editInfo, setEditInfo] = useState("");
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -102,9 +117,11 @@ export default function ListagemAportes() {
         per_page: String(perPage),
       });
       if (filterCode.trim()) params.set("code", filterCode.trim());
+      if (filterCurrency !== "todos") params.set("currency", filterCurrency);
+      if (filterInfo.trim()) params.set("info", filterInfo.trim());
       return `/api/aportes?${params.toString()}`;
     },
-    [filterType, filterCode, filterDateStart, filterDateEnd, sortBy, sortDir, perPage]
+    [filterType, filterCode, filterDateStart, filterDateEnd, filterCurrency, filterInfo, sortBy, sortDir, perPage]
   );
 
   const fetchAportes = useCallback(
@@ -155,6 +172,9 @@ export default function ListagemAportes() {
     setEditQtd(String(aporte.qtd));
     setEditValueTotal(String(aporte.value_total));
     setEditDateOperation(aporte.date_operation);
+    setEditCurrency(aporte.currency ?? "BRL");
+    setEditDolarValue(aporte.dolar_value ? String(aporte.dolar_value) : "");
+    setEditInfo(aporte.info ?? "");
     setEditError(null);
   }
 
@@ -171,6 +191,9 @@ export default function ListagemAportes() {
           qtd: editQtd,
           value_total: editValueTotal,
           date_operation: editDateOperation,
+          currency: editCurrency,
+          dolar_value: editDolarValue,
+          info: editInfo,
         }),
       });
 
@@ -222,14 +245,14 @@ export default function ListagemAportes() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="w-full max-w-6xl">
+      <div className="w-full max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Listagem de Aportes</h1>
         </div>
 
         {/* Filters */}
         <div className="rounded-2xl bg-gray-900 border border-gray-800 p-5 mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FilterField label="Tipo do Ativo">
               <select
                 value={filterType}
@@ -270,6 +293,31 @@ export default function ListagemAportes() {
                 value={filterDateEnd}
                 onChange={(e) => setFilterDateEnd(e.target.value)}
                 className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              />
+            </FilterField>
+
+            <FilterField label="Moeda">
+              <select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              >
+                <option value="todos">Todos</option>
+                {Object.keys(CURRENCIES).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+
+            <FilterField label="Informação">
+              <input
+                type="text"
+                value={filterInfo}
+                onChange={(e) => setFilterInfo(e.target.value)}
+                placeholder="Informe a informação"
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
               />
             </FilterField>
 
@@ -355,12 +403,15 @@ export default function ListagemAportes() {
                   <table className="w-full text-sm min-w-max">
                     <thead>
                       <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 text-center">Data</th>
                         <th className="px-4 py-3 text-left">Tipo</th>
                         <th className="px-4 py-3 text-left">Código</th>
                         <th className="px-4 py-3 text-right">Quantidade</th>
+                        <th className="px-4 py-3 text-center">Moeda</th>
                         <th className="px-4 py-3 text-right">Valor Total</th>
                         <th className="px-4 py-3 text-right">Valor Unit.</th>
-                        <th className="px-4 py-3 text-center">Data</th>
+                        <th className="px-4 py-3 text-right">Dólar no Dia</th>
+                        <th className="px-4 py-3 text-left">Informação</th>
                         <th className="px-4 py-3 text-center">Ações</th>
                       </tr>
                     </thead>
@@ -370,11 +421,15 @@ export default function ListagemAportes() {
                         const typeLabel = assetType
                           ? (TYPES_ASSETS[assetType] ?? assetType)
                           : "—";
+                        const currency = aporte.currency ?? "BRL";
                         return (
                           <tr
                             key={aporte.id}
                             className="hover:bg-gray-800/50 transition-colors"
                           >
+                            <td className="px-4 py-3 text-center text-gray-300">
+                              {formatDate(aporte.date_operation)}
+                            </td>
                             <td className="px-4 py-3 text-gray-400 text-xs">
                               {typeLabel}
                             </td>
@@ -384,14 +439,20 @@ export default function ListagemAportes() {
                             <td className="px-4 py-3 text-right text-gray-300">
                               {formatQtd(aporte.qtd)}
                             </td>
-                            <td className="px-4 py-3 text-right text-gray-300">
-                              {formatValue(aporte.value_total)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-gray-300">
-                              {calcUnitValue(aporte.value_total, aporte.qtd)}
-                            </td>
                             <td className="px-4 py-3 text-center text-gray-300">
-                              {formatDate(aporte.date_operation)}
+                              {currency}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-300">
+                              {formatWithCurrency(aporte.value_total, currency)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-300">
+                              {calcUnitValue(aporte.value_total, aporte.qtd, currency)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-300">
+                              {formatDolarValue(aporte.dolar_value, currency)}
+                            </td>
+                            <td className="px-4 py-3 text-left text-gray-400 text-xs max-w-[160px] truncate">
+                              {aporte.info || "—"}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <div className="flex items-center justify-center gap-2">
@@ -478,6 +539,37 @@ export default function ListagemAportes() {
                 value={editDateOperation}
                 onChange={(e) => setEditDateOperation(e.target.value)}
                 className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              />
+            </ModalField>
+            <ModalField label="Moeda">
+              <select
+                value={editCurrency}
+                onChange={(e) => setEditCurrency(e.target.value)}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              >
+                {Object.keys(CURRENCIES).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </ModalField>
+            <ModalField label="Dólar no Dia">
+              <input
+                type="text"
+                value={editDolarValue}
+                onChange={(e) => setEditDolarValue(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              />
+            </ModalField>
+            <ModalField label="Informação">
+              <input
+                type="text"
+                value={editInfo}
+                onChange={(e) => setEditInfo(e.target.value)}
+                placeholder="Informação adicional (opcional)"
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
               />
             </ModalField>
             {editError && <p className="text-red-400 text-sm">{editError}</p>}

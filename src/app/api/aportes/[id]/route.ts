@@ -3,11 +3,25 @@ import { supabase } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// PUT /api/aportes/[id] → edita qtd, value_total, date_operation
+function normalizeCurrency(val: string | undefined): string {
+  const v = (val ?? "").trim().toUpperCase();
+  return v === "USD" || v === "BRL" ? v : "BRL";
+}
+
+function normalizeDolarValue(val: unknown): number {
+  const n = parseFloat(String(val ?? "").replace(",", "."));
+  return isNaN(n) ? 0.0 : n;
+}
+
+function normalizeInfo(val: unknown): string {
+  return String(val ?? "").trim();
+}
+
+// PUT /api/aportes/[id] → edita qtd, value_total, date_operation, currency, dolar_value, info
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const body = await request.json();
-  const { qtd, value_total, date_operation } = body;
+  const { qtd, value_total, date_operation, currency, dolar_value, info } = body;
 
   const qtdNum = parseFloat(String(qtd).replace(",", "."));
   const valueTotalNum = parseFloat(String(value_total).replace(",", "."));
@@ -27,7 +41,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   const { data, error } = await supabase
     .from("aportes")
-    .update({ qtd: qtdNum, value_total: valueTotalNum, date_operation })
+    .update({
+      qtd: qtdNum,
+      value_total: valueTotalNum,
+      date_operation,
+      currency: normalizeCurrency(currency),
+      dolar_value: normalizeDolarValue(dolar_value),
+      info: normalizeInfo(info),
+    })
     .eq("id", id)
     .select()
     .single();

@@ -4,6 +4,9 @@ export interface Aporte {
   qtd: number;
   value_total: number;
   date_operation: string; // yyyy-mm-dd
+  currency: string;
+  dolar_value: number;
+  info: string;
 }
 
 export interface AporteFilters {
@@ -15,4 +18,6 @@ export interface AporteFilters {
   sort_dir?: "asc" | "desc";
   page?: number;
   per_page?: number;
+  currency?: string;
+  info?: string;
 }

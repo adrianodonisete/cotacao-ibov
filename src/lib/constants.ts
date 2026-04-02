@@ -8,3 +8,8 @@ export const TYPES_ASSETS: Record<string, string> = {
 };
 
 export type AssetType = keyof typeof TYPES_ASSETS;
+
+export const CURRENCIES: Record<string, string> = {
+  BRL: "BRL",
+  USD: "USD",
+};

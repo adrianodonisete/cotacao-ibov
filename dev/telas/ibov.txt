@@ -6,6 +6,9 @@ API para buscar cotação da bolsa:
 https://www.alphavantage.co/query?function=GLOBAL_QUOTE&apikey=NP75EV2DGLZWIGHM&symbol=BBAS3.SA
 
 
+Banco
+https://supabase.com/dashboard/project/yoacquheehhdapikjmyn/database/schemas
+
 
 Brapi - API para buscar cotação da bolsa:
 https://brapi.dev/api/quote/PETR4

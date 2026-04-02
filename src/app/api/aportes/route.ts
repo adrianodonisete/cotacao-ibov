@@ -11,8 +11,22 @@ function daysAgoStr(days: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function normalizeCurrency(val: string | undefined): string {
+  const v = (val ?? "").trim().toUpperCase();
+  return v === "USD" || v === "BRL" ? v : "BRL";
+}
+
+function normalizeDolarValue(val: unknown): number {
+  const n = parseFloat(String(val ?? "").replace(",", "."));
+  return isNaN(n) ? 0.0 : n;
+}
+
+function normalizeInfo(val: unknown): string {
+  return String(val ?? "").trim();
+}
+
 // GET /api/aportes
-// Parâmetros: type, code, date_start, date_end, sort_by, sort_dir, page, per_page
+// Parâmetros: type, code, date_start, date_end, sort_by, sort_dir, page, per_page, currency, info
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -28,6 +42,8 @@ export async function GET(request: NextRequest) {
   const perPage = [10, 20, 50, 100].includes(parseInt(searchParams.get("per_page") ?? "20"))
     ? parseInt(searchParams.get("per_page") as string)
     : 20;
+  const currency = searchParams.get("currency") ?? "todos";
+  const info = searchParams.get("info") ?? "";
 
   // Resolve type filter: get codes from ativos that belong to the selected type
   let codesToFilter: string[] | null = null;
@@ -73,6 +89,14 @@ export async function GET(request: NextRequest) {
     query = query.ilike("code", `%${code.trim().toUpperCase()}%`);
   }
 
+  if (currency && currency !== "todos") {
+    query = query.eq("currency", currency);
+  }
+
+  if (info.trim()) {
+    query = query.ilike("info", `%${info.trim()}%`);
+  }
+
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
   query = query.range(from, to);
@@ -87,7 +111,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/aportes → cadastro em lote
-// Body: { aportes: Array<{ code, qtd, value_total, date_operation }> }
+// Body: { aportes: Array<{ code, qtd, value_total, date_operation, currency?, dolar_value?, info? }> }
 // Retorna: { inserted, duplicates: [{code, qtd, date_operation}] }
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -100,8 +124,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Normalize new optional fields
+  const normalized = aportes.map((a) => ({
+    ...a,
+    currency: normalizeCurrency(a.currency as string | undefined),
+    dolar_value: normalizeDolarValue(a.dolar_value),
+    info: normalizeInfo(a.info),
+  }));
+
   // Fetch existing (code, qtd, date_operation) for the codes in the list
-  const codes = [...new Set(aportes.map((a) => a.code))];
+  const codes = [...new Set(normalized.map((a) => a.code))];
 
   const { data: existing, error: fetchError } = await supabase
     .from("aportes")
@@ -119,10 +151,10 @@ export async function POST(request: NextRequest) {
     )
   );
 
-  const toInsert = aportes.filter(
+  const toInsert = normalized.filter(
     (a) => !existingKeys.has(`${a.code}|${Number(a.qtd)}|${a.date_operation}`)
   );
-  const duplicates = aportes
+  const duplicates = normalized
     .filter((a) =>
       existingKeys.has(`${a.code}|${Number(a.qtd)}|${a.date_operation}`)
     )

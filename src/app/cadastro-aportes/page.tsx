@@ -7,6 +7,9 @@ interface ParsedAporte {
   qtd: number;
   value_total: number;
   date_operation: string; // yyyy-mm-dd
+  currency: string;
+  dolar_value: number;
+  info: string;
   status: "novo" | "duplicata_lote" | "duplicata_banco";
 }
 
@@ -24,6 +27,16 @@ function parseDate(raw: string): string | null {
   return null;
 }
 
+function normalizeCurrency(val: string | undefined): string {
+  const v = (val ?? "").trim().toUpperCase();
+  return v === "USD" || v === "BRL" ? v : "BRL";
+}
+
+function normalizeDolarValue(val: string | undefined): number {
+  const n = parseFloat((val ?? "").trim().replace(",", "."));
+  return isNaN(n) ? 0.0 : n;
+}
+
 function parseTextarea(text: string): {
   valid: ParsedAporte[];
   ignoredCount: number;
@@ -38,12 +51,12 @@ function parseTextarea(text: string): {
     if (!trimmed || trimmed.startsWith("#")) continue;
 
     const cols = trimmed.split(";");
-    if (cols.length !== 4) {
+    if (cols.length < 4 || cols.length > 7) {
       ignoredCount++;
       continue;
     }
 
-    const [rawCode, rawQtd, rawValue, rawDate] = cols;
+    const [rawCode, rawQtd, rawValue, rawDate, rawCurrency, rawDolarValue, rawInfo] = cols;
     const code = rawCode.trim().toUpperCase();
     const qtd = parseFloat(rawQtd.trim().replace(",", "."));
     const value_total = parseFloat(rawValue.trim().replace(",", "."));
@@ -54,12 +67,16 @@ function parseTextarea(text: string): {
       continue;
     }
 
+    const currency = normalizeCurrency(rawCurrency);
+    const dolar_value = normalizeDolarValue(rawDolarValue);
+    const info = (rawInfo ?? "").trim();
+
     const key = `${code}|${qtd}|${date_operation}`;
     if (seenKeys.has(key)) {
-      valid.push({ code, qtd, value_total, date_operation, status: "duplicata_lote" });
+      valid.push({ code, qtd, value_total, date_operation, currency, dolar_value, info, status: "duplicata_lote" });
     } else {
       seenKeys.add(key);
-      valid.push({ code, qtd, value_total, date_operation, status: "novo" });
+      valid.push({ code, qtd, value_total, date_operation, currency, dolar_value, info, status: "novo" });
     }
   }
 
@@ -113,7 +130,7 @@ export default function CadastroAportes() {
     setIgnoredCount(ignored);
 
     if (valid.length === 0) {
-      setError("Nenhuma linha válida encontrada. Verifique o formato: código;quantidade;valor total;data");
+      setError("Nenhuma linha válida encontrada. Verifique o formato: código;quantidade;valor total;data[;moeda[;dólar[;info]]]");
       setLoading(false);
       return;
     }
@@ -171,11 +188,14 @@ export default function CadastroAportes() {
 
     const toInsert = preview
       .filter((a) => a.status === "novo")
-      .map(({ code, qtd, value_total, date_operation }) => ({
+      .map(({ code, qtd, value_total, date_operation, currency, dolar_value, info }) => ({
         code,
         qtd,
         value_total,
         date_operation,
+        currency,
+        dolar_value,
+        info,
       }));
 
     const batchDuplicates = preview.filter((a) => a.status === "duplicata_lote").length;
@@ -224,15 +244,17 @@ export default function CadastroAportes() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-5xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Cadastro Aportes</h1>
           <p className="mt-1 text-gray-400 text-sm">
             Cada linha:{" "}
-            <code className="text-emerald-400">código;quantidade;valor total;data</code>
+            <code className="text-emerald-400">código;quantidade;valor total;data[;moeda[;dólar[;info]]]</code>
             {" — "}data aceita em{" "}
             <code className="text-emerald-400">dd/mm/aaaa</code> ou{" "}
-            <code className="text-emerald-400">aaaa-mm-dd</code>. Linhas com{" "}
+            <code className="text-emerald-400">aaaa-mm-dd</code>. Moeda:{" "}
+            <code className="text-emerald-400">BRL</code> ou{" "}
+            <code className="text-emerald-400">USD</code> (padrão: BRL). Linhas com{" "}
             <code className="text-gray-500">#</code> são ignoradas.
           </p>
         </div>
@@ -259,7 +281,7 @@ export default function CadastroAportes() {
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 rows={12}
-                placeholder={"# Exemplo:\nPETR4;100;3250,00;15/01/2025\nVALE3;50;4100,50;2025-01-20\n# linhas com # são ignoradas"}
+                placeholder={"# Exemplos:\nPETR4;100;3250,00;15/01/2025\nVALE3;50;4100,50;2025-01-20;BRL\nIVVB11;10;2500,00;2025-01-20;USD;5.10;ETF S&P500\n# linhas com # são ignoradas"}
                 className="w-full rounded-lg bg-gray-800 border border-gray-700 px-4 py-3 text-white placeholder-gray-600 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-y"
               />
             </div>
@@ -307,6 +329,9 @@ export default function CadastroAportes() {
                     <th className="px-4 py-3 text-right">Quantidade</th>
                     <th className="px-4 py-3 text-right">Valor Total</th>
                     <th className="px-4 py-3 text-center">Data</th>
+                    <th className="px-4 py-3 text-center">Moeda</th>
+                    <th className="px-4 py-3 text-right">Dólar</th>
+                    <th className="px-4 py-3 text-left">Info</th>
                     <th className="px-4 py-3 text-right">Status</th>
                   </tr>
                 </thead>
@@ -317,6 +342,11 @@ export default function CadastroAportes() {
                       <td className="px-4 py-3 text-right text-gray-300">{formatQtd(a.qtd)}</td>
                       <td className="px-4 py-3 text-right text-gray-300">{formatValue(a.value_total)}</td>
                       <td className="px-4 py-3 text-center text-gray-300">{formatDate(a.date_operation)}</td>
+                      <td className="px-4 py-3 text-center text-gray-300">{a.currency}</td>
+                      <td className="px-4 py-3 text-right text-gray-300">
+                        {a.dolar_value > 0 ? formatValue(a.dolar_value) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-left text-gray-300">{a.info || "—"}</td>
                       <td className={`px-4 py-3 text-right font-medium ${STATUS_CLASS[a.status]}`}>
                         {STATUS_LABEL[a.status]}
                       </td>

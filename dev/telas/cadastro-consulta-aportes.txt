@@ -66,3 +66,62 @@ Adicionar o menu de navegação nas duas telas criadas.
 Add os links Links das telas criadas no menu de navegação:
     - Cadastro Aportes: vai pra tela de "Cadastro Aportes".
     - Listagem de Aportes: vai pra tela de "Listagem de Aportes".
+
+
+
+
+Alteração na tabela "aportes":
+    - Adicionar o campo currency (varchar 3 - default: BRL) na tabela "aportes".
+    - Adicionar o campo dolar_value (numeric 15, 6 - default: 0.0) na tabela "aportes".
+    - Adicionar o campo info (varchar 100) na tabela "aportes".
+
+Ao salvar os aportes, fazer as seguintes alterações:
+    - Ordem das colunas: code, qtd, value_total, date_operation, currency, dolar_value e info.
+    - A coluna currency é opcional, se for vazio, então é "BRL".
+       - Valores permitidos (USD, BRL e vazio), se for diferente de "USD" ou "BRL", então é "BRL".
+       - Salvar como maiúsculo.
+    - A coluna dolar_value é opcional, se for vazio, então é 0.0.
+       - Ignorar se o valor não for numérico.
+       - Salvar como float.
+    - A coluna info é opcional, se for vazio, então é vazio.
+       - Salvar como string.
+
+Ao editar os aportes, fazer as seguintes alterações:
+    - Campos editáveis: qtd, value_total, date_operation, currency, dolar_value e info.
+    - A coluna currency é opcional, se for vazio, então é "BRL".
+       - Exibir um select com as opções: USD e BRL (criar a constante "CURRENCIES").
+       - Valores permitidos (USD, BRL e vazio), se for diferente de "USD" ou "BRL", então é "BRL".
+       - Salvar como maiúsculo.
+    - A coluna dolar_value é opcional, se for vazio, então é 0.0.
+       - Salvar como float.
+    - A coluna info é opcional, se for vazio, então é vazio.
+       - Salvar como string.
+
+Na listagem de aportes, exibir as seguintes colunas:
+- Data da Operação (date parse to dd/mm/yyyy): data da operação.
+- Tipo do ativo (string): (inner join com a tabela "ativos" on code = code).
+- Código (string): código do aporte.
+- Quantidade (float): quantidade do aporte (se não tiver casa decimal, considerar 0 casa decimal, se sim, exibir 4 casas decimais).
+- Moeda (string): currency.
+- Valor Total (float): valor total do aporte (exibir 2 casas decimais).
+  - Se currency for "USD", exibir o valor com o símbolo do dólar (não alterar o valor, apenas adicionar o símbolo), 
+  - Se currency for "BRL", exibir o valor com o símbolo do real (não alterar o valor, apenas adicionar o símbolo).
+- Valor Unitário (float): valor unitário do aporte (value_total / qtd), se qtd for 0, exibir 0 (exibir 2 casas decimais).
+  - Se currency for "USD", exibir o valor com o símbolo do dólar (não alterar o valor, apenas adicionar o símbolo), 
+  - Se currency for "BRL", exibir o valor com o símbolo do real (não alterar o valor, apenas adicionar o símbolo).
+- Dólar no dia da operação (float): dolar_value.
+  - Se currency for "USD" e dolar_value>0, exibir o valor com o símbolo do real (não alterar o valor, apenas adicionar o símbolo), 
+  - Se currency for "BRL" ou dolar_value<=0, exibir vazio.
+- Informação (string): info.
+- Ações: editar e excluir.
+    - Editar: vai abrir um modal com o formulário de edição do aporte (após salvar, atualizar a lista de aportes para recalcular o valor unitário).
+        - Campos editáveis: qtd, value_total, date_operation, currency, dolar_value e info.
+    - Excluir: vai abrir um modal de confirmação, se confirmar, vai excluir o aporte do banco de dados 
+        - Após excluir, atualizar a lista de aportes, para atualizar o total de aportes encontrados.
+
+Nos filtros de pesquisa, adicionar a opção de filtrar por:
+- Moeda (select - opções: todos, USD, BRL - constante "CURRENCIES") valor default: todos
+    - Se opção igual a "todos", não filtrar por moeda.
+    - Se "moeda" for selecionado, filtrar pelo valor da currency.
+- Informação (input type="text" placeholder="Informe a informação") valor default: vazio
+    - Se "informação" for preenchido, filtrar pelo valor da info (LIKE %informação%).
