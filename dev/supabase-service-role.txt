@@ -1,0 +1,44 @@
+Supabase + service_role (este projeto)
+=====================================
+
+1) Variável de ambiente (.env.local)
+-------------------------------------
+Adicione a chave secreta do projeto (não é a "anon public"):
+
+  SUPABASE_URL=https://<ref>.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY=<service_role ...>
+
+Onde obter no painel Supabase:
+  Project Settings → API
+  - Project URL  → SUPABASE_URL
+  - service_role (secret) → SUPABASE_SERVICE_ROLE_KEY
+
+Remova ou ignore SUPABASE_PUBLISHABLE_DEFAULT_KEY para acesso ao banco neste app:
+as rotas Next usam apenas getSupabaseServer() com service_role.
+
+2) Comportamento
+----------------
+A service role ignora Row Level Security (RLS). Não é necessário criar policies
+para anon nas tabelas ativos/aportes só por causa deste backend.
+
+3) Segurança
+------------
+- Nunca coloque SUPABASE_SERVICE_ROLE_KEY em código de cliente, NEXT_PUBLIC_*, ou repositório.
+- Se no futuro o browser falar direto com o Supabase, use a anon key + RLS/policies adequadas.
+
+4) Supabase Dashboard (opcional)
+--------------------------------
+RLS pode ficar ON ou OFF nas tabelas: a API Next continua funcionando com service_role.
+Se quiser desligar RLS em projeto pessoal (como nos scripts SQL do repo):
+
+  ALTER TABLE public.ativos DISABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.aportes DISABLE ROW LEVEL SECURITY;
+
+5) Job sync-cotacoes (tabela cotacoes)
+--------------------------------------
+Comando manual: npm run sync-cotacoes
+
+- Carrega variáveis de .env.local via scripts/env.ts (dotenv).
+- Usa getSupabaseServer() (service_role) para ler ativos (type acao/fii) e fazer upsert em cotacoes.
+- Antes de rodar, criar a tabela no Supabase: db/supabase/create_table_cotacoes.sql
+- Também exige BRAPI_TOKEN no .env.local (cotações via BrapiService / SDK brapi).

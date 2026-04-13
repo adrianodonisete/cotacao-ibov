@@ -13,6 +13,8 @@ export interface BrapiResult {
   regularMarketOpen: number;
   fiftyTwoWeekHigh: number;
   fiftyTwoWeekLow: number;
+  /** ISO 8601 — usado para derivar `date_update` em `cotacoes`. */
+  regularMarketTime?: string;
   logourl?: string;
 }
 

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabase";
 import { Asset } from "@/types/asset";
 
 // GET /api/assets          → todos os ativos (para checagem de duplicatas)
 // GET /api/assets?type=acao → filtrado por tipo, ordenado por peso desc
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseServer();
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
 // Body: { assets: Array<{ code, info, type, weight }> }
 // Retorna: { inserted: number, duplicates: string[] }
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseServer();
   const body = await request.json();
   const { assets } = body as { assets: Omit<Asset, "id">[] };
 

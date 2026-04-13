@@ -1,25 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { BrapiResponse } from '@/types/brapi';
+import { NextRequest, NextResponse } from "next/server";
+import { APIError } from "brapi";
+import { fetchQuoteForTicker } from "@/lib/brapi-service";
 
 export async function GET(request: NextRequest) {
-	const { searchParams } = new URL(request.url);
-	const code = searchParams.get('code');
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
 
-	if (!code || code.trim() === '') {
-		return NextResponse.json({ error: "O campo 'code' é obrigatório." }, { status: 400 });
-	}
+  if (!code || code.trim() === "") {
+    return NextResponse.json({ error: "O campo 'code' é obrigatório." }, { status: 400 });
+  }
 
-	const token = process.env.BRAPI_TOKEN;
-
-	if (!token) {
-		return NextResponse.json({ error: 'Token da API não configurado.' }, { status: 500 });
-	}
-
-	const ticker = code.trim().toUpperCase();
-	const url = `https://brapi.dev/api/quote/${encodeURIComponent(ticker)}?token=${token}`;
-
-	const res = await fetch(url, { next: { revalidate: 60 } });
-	const data: BrapiResponse = await res.json();
-
-	return NextResponse.json(data, { status: res.status });
+  try {
+    const data = await fetchQuoteForTicker(code);
+    return NextResponse.json(data, { status: 200 });
+  } catch (err) {
+    if (err instanceof APIError) {
+      const status = typeof err.status === "number" ? err.status : 500;
+      return NextResponse.json(
+        { error: err.message || "Erro na API Brapi." },
+        { status }
+      );
+    }
+    if (err instanceof Error && err.message.includes("BRAPI_TOKEN")) {
+      return NextResponse.json({ error: "Token da API não configurado." }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Erro ao buscar cotação." }, { status: 500 });
+  }
 }

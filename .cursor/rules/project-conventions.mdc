@@ -31,4 +31,5 @@ value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
 ## Environment Variables
 - `BRAPI_TOKEN` in `.env.local` — never expose to the client, read only in API Routes
+- `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` em `.env.local` — uso exclusivo no servidor (`getSupabaseServer` em API Routes e checagem de conexão); nunca expor a service role ao cliente
 - `.env.local` is gitignored by default — never commit it

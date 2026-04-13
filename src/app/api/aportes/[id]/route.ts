@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -19,6 +19,7 @@ function normalizeInfo(val: unknown): string {
 
 // PUT /api/aportes/[id] → edita qtd, value_total, date_operation, currency, dolar_value, info
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const supabase = getSupabaseServer();
   const { id } = await params;
   const body = await request.json();
   const { qtd, value_total, date_operation, currency, dolar_value, info } = body;
@@ -71,6 +72,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/aportes/[id] → exclui um aporte
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const supabase = getSupabaseServer();
   const { id } = await params;
 
   const { error } = await supabase.from("aportes").delete().eq("id", id);

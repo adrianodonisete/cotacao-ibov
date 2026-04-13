@@ -1,0 +1,25 @@
+-- Ativos
+ALTER TABLE public.ativos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "ativos_anon_select" ON public.ativos;
+DROP POLICY IF EXISTS "ativos_anon_insert" ON public.ativos;
+DROP POLICY IF EXISTS "ativos_anon_update" ON public.ativos;
+DROP POLICY IF EXISTS "ativos_anon_delete" ON public.ativos;
+
+CREATE POLICY "ativos_anon_select" ON public.ativos FOR SELECT TO anon USING (true);
+CREATE POLICY "ativos_anon_insert" ON public.ativos FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "ativos_anon_update" ON public.ativos FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "ativos_anon_delete" ON public.ativos FOR DELETE TO anon USING (true);
+
+-- Aportes
+ALTER TABLE public.aportes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "aportes_anon_select" ON public.aportes;
+DROP POLICY IF EXISTS "aportes_anon_insert" ON public.aportes;
+DROP POLICY IF EXISTS "aportes_anon_update" ON public.aportes;
+DROP POLICY IF EXISTS "aportes_anon_delete" ON public.aportes;
+
+CREATE POLICY "aportes_anon_select" ON public.aportes FOR SELECT TO anon USING (true);
+CREATE POLICY "aportes_anon_insert" ON public.aportes FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "aportes_anon_update" ON public.aportes FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "aportes_anon_delete" ON public.aportes FOR DELETE TO anon USING (true);

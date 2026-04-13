@@ -1,0 +1,24 @@
+1 - gerar o script para criar a tabela "cotacoes" no banco de dados Supabase.
+Campos:
+    - id (int - auto incremento)
+    - code (varchar 20)
+    - date_update (date)
+    - value (numeric 15, 6) 
+    - PRIMARY KEY: id
+    - NOT NULL: id, code, date_update, value
+    - UNIQUE: code
+    - INDEX: code, date_update
+
+2 - criar uma cron job para atualizar as cotações dos ativos.
+    - a cron job deve ser manualmente via prompt de comando.
+    - a cron job deve atualizar as cotações dos ativos fiis e acoes na tabela "cotacoes".
+      - buscar todos ativos na tabela "ativos" e buscar a cotação mais recente na API Brapi
+        - somente ativos com type in (fiis, acoes).
+      - a API deve buscar um ativo por vez e salvar a cotação na tabela "cotacoes".
+      - se já tiver registro do ativo, fazer update de "value" e "date_update", senão, criar novo registro.
+    - verificar se a library Brapi (javascript) já está instalada no projeto.
+      - se não estiver, instalar a library Brapi (javascript) usando o comando "npm install brapi".
+      - docs: https://brapi.dev/docs/sdks/typescript
+    - criar um service para todas as operações da API Brapi (BrapiService).
+      - em qualquer lugar do projeto que utilize a API Brapi, deve ser usado o BrapiService.
+      - a API Brapi será usada apenas em ativos fiis e acoes.

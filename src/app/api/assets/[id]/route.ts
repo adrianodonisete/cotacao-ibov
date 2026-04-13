@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 // PUT /api/assets/[id] → edita info e weight
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const supabase = getSupabaseServer();
   const { id } = await params;
   const body = await request.json();
   const { info, weight } = body;
@@ -32,6 +33,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/assets/[id] → exclui um ativo
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const supabase = getSupabaseServer();
   const { id } = await params;
 
   const { error } = await supabase.from("ativos").delete().eq("id", id);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabase";
 
 type CheckItem = { code: string; qtd: number; date_operation: string };
 
@@ -7,6 +7,7 @@ type CheckItem = { code: string; qtd: number; date_operation: string };
 // Body: { aportes: CheckItem[] }
 // Retorna: { duplicates: CheckItem[] } — quais já existem no banco
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseServer();
   const body = await request.json();
   const { aportes } = body as { aportes: CheckItem[] };
 

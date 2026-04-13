@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabase";
 import { Aporte } from "@/types/aporte";
 
 function todayStr(): string {
@@ -28,6 +28,7 @@ function normalizeInfo(val: unknown): string {
 // GET /api/aportes
 // Parâmetros: type, code, date_start, date_end, sort_by, sort_dir, page, per_page, currency, info
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseServer();
   const { searchParams } = new URL(request.url);
 
   const type = searchParams.get("type") ?? "todos";
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
 // Body: { aportes: Array<{ code, qtd, value_total, date_operation, currency?, dolar_value?, info? }> }
 // Retorna: { inserted, duplicates: [{code, qtd, date_operation}] }
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseServer();
   const body = await request.json();
   const { aportes } = body as { aportes: Omit<Aporte, "id">[] };
 
