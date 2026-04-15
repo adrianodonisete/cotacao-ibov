@@ -279,7 +279,7 @@ export default function CadastroAportes() {
                 id="list_aportes"
                 name="list_aportes"
                 value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
+                onInput={(e) => setRawText(e.currentTarget.value.replace(/\t/g, ";"))}
                 rows={12}
                 placeholder={"# Exemplos:\nPETR4;100;3250,00;15/01/2025\nVALE3;50;4100,50;2025-01-20;BRL\nIVVB11;10;2500,00;2025-01-20;USD;5.10;ETF S&P500\n# linhas com # são ignoradas"}
                 className="w-full rounded-lg bg-gray-800 border border-gray-700 px-4 py-3 text-white placeholder-gray-600 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-y"

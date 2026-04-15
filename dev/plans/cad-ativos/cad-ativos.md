@@ -87,6 +87,12 @@ flowchart LR
     PostAPI --> Result["Resumo: X cadastrados, Y duplicatas, Z ignoradas"]
 ```
 
+### Normalização no `list_assets` (input)
+
+- No `textarea` `list_assets`, adicionar evento de input (`onInput`).
+- Sempre que o conteúdo for alterado, substituir todas as ocorrências de `\t` por `;`.
+- Objetivo: permitir colar dados vindos do Excel (tabulados) e já converter para o formato esperado pelo parser (`;`).
+
 ## Fluxo: Listagem de Ativos
 
 - Carrega automaticamente com `type=acao`

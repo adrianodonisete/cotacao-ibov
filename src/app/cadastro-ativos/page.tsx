@@ -203,7 +203,7 @@ export default function CadastroAtivos() {
 								id="list_assets"
 								name="list_assets"
 								value={rawText}
-								onChange={e => setRawText(e.target.value)}
+								onInput={e => setRawText(e.currentTarget.value.replace(/\t/g, ';'))}
 								rows={12}
 								placeholder={
 									'# Exemplo:\nPETR4;Petrobras PN;acao;10\nHGLG11;CSHG Logística;fii;5\n# linhas com # são ignoradas'

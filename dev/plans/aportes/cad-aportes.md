@@ -94,6 +94,7 @@ flowchart LR
 ### Parser (client-side)
 
 - Separador: `;` — **4 a 7 colunas:** `code;qtd;value_total;date_operation[;currency[;dolar_value[;info]]]`
+- No `textarea` `list_aportes`, usar evento de input (`onInput`) para substituir `\t` por `;` a cada alteração (suporte a colagem do Excel em formato tabulado)
 - Colunas 5–7 opcionais; ausentes são tratadas como vazio → no servidor viram `BRL`, `0.0`, `""` conforme regras
 - TRIM em todos os campos; `code` salvo em maiúsculo
 - Aceitar `,` e `.` como separador decimal em `qtd` e `value_total` (e em `dolar_value` quando presente)
