@@ -19,7 +19,7 @@ Checklist ordenada para implementar a [specification.md](./specification.md).
 
 ## Tipos
 
-- [ ] Adicionar tipo `Cotacao` (e payloads necessários) em `src/types/`.
+- [x] Adicionar tipo `Cotacao` (e payloads necessários) em [`src/types/cotacao.ts`](../../../src/types/cotacao.ts), incluindo `CotacaoUpsertInput`, `CotacaoSyncResult` e `CotacaoApiResponse`.
 
 ## Job manual (CLI)
 

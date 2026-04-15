@@ -10,6 +10,11 @@ import "./env";
 import { getSupabaseServer } from "../src/lib/supabase";
 import { fetchQuoteForTicker } from "../src/lib/brapi-service";
 import type { BrapiResult } from "../src/types/brapi";
+import type { CotacaoSyncResult, CotacaoUpsertInput } from "../src/types/cotacao";
+
+type AtivoCodeRow = {
+  code: string;
+};
 
 function dateUpdateFromQuote(r: BrapiResult): string {
   if (r.regularMarketTime) {
@@ -18,7 +23,7 @@ function dateUpdateFromQuote(r: BrapiResult): string {
   return new Date().toISOString().split("T")[0]!;
 }
 
-async function main() {
+async function main(): Promise<CotacaoSyncResult> {
   const supabase = getSupabaseServer();
 
   const { data: ativos, error: listError } = await supabase
@@ -31,10 +36,10 @@ async function main() {
     process.exit(1);
   }
 
-  const rows = ativos ?? [];
+  const rows: AtivoCodeRow[] = (ativos ?? []) as AtivoCodeRow[];
   if (rows.length === 0) {
     console.log("Nenhum ativo com type acao ou fii.");
-    process.exit(0);
+    return { total: 0, ok: 0, fail: 0 };
   }
 
   console.log(`Sincronizando ${rows.length} ativo(s)...`);
@@ -43,7 +48,7 @@ async function main() {
   let fail = 0;
 
   for (const row of rows) {
-    const code = row.code as string;
+    const code = row.code;
     try {
       const data = await fetchQuoteForTicker(code);
       const first = data.results?.[0];
@@ -56,8 +61,9 @@ async function main() {
       const value = first.regularMarketPrice;
       const date_update = dateUpdateFromQuote(first);
 
+      const upsertInput: CotacaoUpsertInput = { code, value, date_update };
       const { error: upsertError } = await supabase.from("cotacoes").upsert(
-        { code, value, date_update },
+        upsertInput,
         { onConflict: "code" }
       );
 
@@ -77,7 +83,13 @@ async function main() {
   }
 
   console.log(`Concluído: ${ok} ok, ${fail} falha(s).`);
-  process.exit(fail > 0 ? 1 : 0);
+  return { total: rows.length, ok, fail };
 }
 
-main();
+main()
+  .then((result) => process.exit(result.fail > 0 ? 1 : 0))
+  .catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Falha fatal no sync-cotacoes:", msg);
+    process.exit(1);
+  });

@@ -12,12 +12,12 @@ Criar ficheiro sugerido: `db/supabase/create_table_cotacoes.sql` (executar uma v
 
 ### Campos
 
-| Campo         | Tipo            | Regras |
-|---------------|-----------------|--------|
+| Campo         | Tipo            | Regras                                                                                       |
+| ------------- | --------------- | -------------------------------------------------------------------------------------------- |
 | `id`          | identidade      | auto incremento (Postgres: `BIGINT GENERATED ALWAYS AS IDENTITY`), `PRIMARY KEY`, `NOT NULL` |
-| `code`        | `VARCHAR(20)`   | `NOT NULL`, `UNIQUE` — um registo por ticker |
-| `date_update` | `DATE`          | `NOT NULL` — data da cotação utilizada |
-| `value`       | `NUMERIC(15,6)` | `NOT NULL` |
+| `code`        | `VARCHAR(20)`   | `NOT NULL`, `UNIQUE` — um registo por ticker                                                 |
+| `date_update` | `DATE`          | `NOT NULL` — data da cotação utilizada                                                       |
+| `value`       | `NUMERIC(15,6)` | `NOT NULL`                                                                                   |
 
 ### Índices
 
@@ -40,8 +40,8 @@ Alinhar ao padrão das outras tabelas do projeto (`ativos`, `aportes`): comentá
 
 Na especificação original aparecem os rótulos “fiis” e “acoes”. No código e no schema atual, os valores guardados em `ativos.type` são:
 
-- `acao` — ação  
-- `fii` — FII  
+- `acao` — ação
+- `fii` — FII
 
 A job deve usar `type IN ('acao', 'fii')`. Tipos `stock` e `reit` **não** entram nesta job (Brapi apenas para FII e ação, conforme requisito).
 
@@ -77,4 +77,4 @@ flowchart TD
 
 ## 7. Tipos TypeScript (implementação futura)
 
-Recomenda-se definir interface `Cotacao` (ou equivalente) em `src/types/` para uso na API e no script da job.
+Esse item recomenda criar uma interface TypeScript chamada `Cotacao` (ou nome semelhante) no diretório `src/types/`. A ideia é padronizar o tipo dos dados de cotações acessados tanto pela API quanto pelo script automatizado (job manual). Assim, sempre que precisar lidar com uma cotação (por exemplo, ao inserir ou ler dados da tabela `cotacoes`), seu código ganha mais segurança e clareza sobre os campos e formatos esperados, facilitando a manutenção e integração entre as diferentes partes do projeto.
