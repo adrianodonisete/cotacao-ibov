@@ -42,3 +42,6 @@ next-env.d.ts
 
 # ide settings
 .vscode
+
+# local MCP config with secrets
+.cursor/mcp.json
