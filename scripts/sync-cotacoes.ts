@@ -4,13 +4,16 @@
  * Requer `.env.local` com BRAPI_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
  * Tabela `cotacoes`: executar `db/supabase/create_table_cotacoes.sql` no Supabase.
  *
- * Uso: npm run sync-cotacoes
+ * Uso:
+ *   npm run sync-cotacoes
+ *   npm run sync-cotacoes -- --job-id 42   (com rastreamento de progresso via status_cron_job)
  */
 import "./env";
 import { getSupabaseServer } from "../src/lib/supabase";
 import { fetchQuoteForTicker } from "../src/lib/brapi-service";
 import type { BrapiResult } from "../src/types/brapi";
 import type { CotacaoSyncResult, CotacaoUpsertInput } from "../src/types/cotacao";
+import { parseJobId, updateJobProgress, finishJob } from "./job-progress";
 
 type AtivoCodeRow = {
   code: string;
@@ -25,6 +28,7 @@ function dateUpdateFromQuote(r: BrapiResult): string {
 
 async function main(): Promise<CotacaoSyncResult> {
   const supabase = getSupabaseServer();
+  const jobId = parseJobId();
 
   const { data: ativos, error: listError } = await supabase
     .from("ativos")
@@ -33,12 +37,14 @@ async function main(): Promise<CotacaoSyncResult> {
 
   if (listError) {
     console.error("Erro ao listar ativos:", listError.message);
+    if (jobId !== null) await finishJob(supabase, jobId, "error");
     process.exit(1);
   }
 
   const rows: AtivoCodeRow[] = (ativos ?? []) as AtivoCodeRow[];
   if (rows.length === 0) {
     console.log("Nenhum ativo com type acao ou fii.");
+    if (jobId !== null) await finishJob(supabase, jobId, "done");
     return { total: 0, ok: 0, fail: 0 };
   }
 
@@ -55,6 +61,7 @@ async function main(): Promise<CotacaoSyncResult> {
       if (!first || typeof first.regularMarketPrice !== "number") {
         console.warn(`[${code}] Sem preço na resposta; ignorado.`);
         fail++;
+        if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
         continue;
       }
 
@@ -70,6 +77,7 @@ async function main(): Promise<CotacaoSyncResult> {
       if (upsertError) {
         console.error(`[${code}] Erro ao gravar cotacoes:`, upsertError.message);
         fail++;
+        if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
         continue;
       }
 
@@ -80,9 +88,12 @@ async function main(): Promise<CotacaoSyncResult> {
       console.error(`[${code}]`, msg);
       fail++;
     }
+
+    if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
   }
 
   console.log(`Concluído: ${ok} ok, ${fail} falha(s).`);
+  if (jobId !== null) await finishJob(supabase, jobId, fail > 0 ? "error" : "done");
   return { total: rows.length, ok, fail };
 }
 

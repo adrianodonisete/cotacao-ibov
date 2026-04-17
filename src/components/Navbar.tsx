@@ -9,6 +9,7 @@ const links = [
 	{ href: '/listagem-ativos', label: 'Listagem de Ativos' },
 	{ href: '/cadastro-aportes', label: 'Cadastro Aportes' },
 	{ href: '/listagem-aportes', label: 'Listagem de Aportes' },
+	{ href: '/cache', label: 'Cache Conteúdo' },
 ];
 
 export default function Navbar() {
