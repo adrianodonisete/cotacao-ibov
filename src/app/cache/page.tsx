@@ -29,6 +29,13 @@ const CRON_CARDS: CronCard[] = [
 		types: ['stock', 'reit'],
 		source: 'Twelve Data',
 	},
+	{
+		cron: 'sync-cotacoes-td',
+		label: 'Sync Cotações Tesouro Direto',
+		description: 'Sincroniza cotações de títulos do Tesouro Direto via Radar Opções (sequencial, um título por vez).',
+		types: ['td'],
+		source: 'Radar Opções',
+	},
 ];
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {

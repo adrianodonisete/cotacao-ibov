@@ -4,7 +4,7 @@ import path from 'path';
 import { getSupabaseServer } from '@/lib/supabase';
 import type { CronTriggerResponse } from '@/types/cron-job';
 
-type CronName = 'sync-cotacoes' | 'sync-cotacoes-us';
+type CronName = 'sync-cotacoes' | 'sync-cotacoes-us' | 'sync-cotacoes-td';
 
 const CRON_CONFIG: Record<CronName, { script: string; types: string[] }> = {
 	'sync-cotacoes': {
@@ -14,6 +14,10 @@ const CRON_CONFIG: Record<CronName, { script: string; types: string[] }> = {
 	'sync-cotacoes-us': {
 		script: 'scripts/sync-cotacoes-us.ts',
 		types: ['stock', 'reit'],
+	},
+	'sync-cotacoes-td': {
+		script: 'scripts/sync-cotacoes-td.ts',
+		types: ['td'],
 	},
 };
 

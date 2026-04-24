@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "sync-cotacoes": "tsx scripts/sync-cotacoes.ts",
-    "sync-cotacoes-us": "tsx scripts/sync-cotacoes-us.ts"
+    "sync-cotacoes-us": "tsx scripts/sync-cotacoes-us.ts",
+    "sync-cotacoes-td": "tsx scripts/sync-cotacoes-td.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
