@@ -1,0 +1,62 @@
+---
+description: Project directory layout, important paths, and file roles (Cotação IBOV)
+alwaysApply: true
+---
+
+# Directory structure
+
+Next.js 16 app root. Product docs: `project.md`. Agent hints: `AGENTS.md`, `CLAUDE.md`.
+
+## Top-level
+
+| Path | Role |
+|------|------|
+| `src/` | App UI, API routes, shared lib and types |
+| `scripts/` | CLI: sync cotações (BR/US), job progress, `env` loading |
+| `db/supabase/` | SQL DDL (run in Supabase) — ativos, aportes, cotacoes, status_cron_job |
+| `dev/` | Internal notes, plans, scratch (not app runtime) |
+| `public/` | Static assets (SVGs, etc.) |
+| `.cursor/rules/` | Cursor rules (`.mdc`) |
+| `.vscode/` | Editor settings |
+
+## Config (root)
+
+`package.json` / `package-lock.json`, `tsconfig.json`, `next.config.ts`, `next-env.d.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `.gitignore`. Secrets: `.env.local` (gitignored).
+
+## `src/`
+
+```
+src/
+├── app/                    # App Router
+│   ├── layout.tsx, page.tsx, globals.css, favicon.ico
+│   ├── cadastro-ativos/, listagem-ativos/
+│   ├── cadastro-aportes/, listagem-aportes/
+│   ├── cache/
+│   └── api/                # Route handlers (see api-routes.mdc)
+│       ├── quote/
+│       ├── assets/, assets/[id]/
+│       ├── aportes/, aportes/[id]/, aportes/check/
+│       └── cache/status/, cache/trigger/
+├── components/             # e.g. Navbar
+├── lib/                    # supabase, brapi-service, twelvedata-service, constants
+└── types/                  # Shared TS models (aporte, asset, brapi, cotacao, cron-job)
+```
+
+## `scripts/`
+
+| File | Role |
+|------|------|
+| `env.ts` | Load env for tsx CLIs |
+| `sync-cotacoes.ts` | Brapi batch — ativos `acao` / `fii` |
+| `sync-cotacoes-us.ts` | Twelve Data — `stock` / `reit` |
+| `job-progress.ts` | Updates `status_cron_job` when run with job id |
+
+## `db/supabase/`
+
+`create_table_ativos.sql`, `create_table_aportes.sql`, `create_table_cotacoes.sql`, `create_table_status_cron_job.sql`.
+
+## Related rules
+
+- `project-conventions.mdc` — stack, pt-BR, env, design tokens
+- `api-routes.mdc` — patterns under `src/app/api/`
+- `react-components.mdc` — `src/**/*.tsx` patterns

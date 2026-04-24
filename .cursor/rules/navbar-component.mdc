@@ -1,0 +1,54 @@
+---
+description: Conventions for the app shell Navbar (Cotação IBOV)
+globs: src/components/Navbar.tsx
+alwaysApply: false
+---
+
+# `Navbar` component conventions
+
+Patterns to preserve when editing `src/components/Navbar.tsx` (and when adding similar app-shell navigation).
+
+## Client boundary
+
+- **Directive**: `"use client"` on line 1 (string with double quotes, semicolon). Required because the component uses `usePathname()` from `next/navigation`.
+- **Hooks**: Read the active route only via `const pathname = usePathname();` — no local state for selection.
+
+## Data: route table
+
+- **Location**: A module-level `const links = [...]` above the component (not inside the function), so the nav config stays declarative and easy to scan.
+- **Shape**: Each entry is `{ href: string, label: string }`.
+- **Paths**: App Router paths as strings; use **kebab-case** segments (e.g. `/cadastro-ativos`, `/listagem-aportes`).
+- **Copy**: **pt-BR** UI labels (match project locale rules).
+
+## Component API
+
+- **Export**: `export default function Navbar()` — default export, no props. Keep the shell self-contained; do not add props unless the product explicitly needs configurable menus.
+
+## Next.js `Link` usage
+
+- **Import**: `Link` from `next/link` (App Router).
+- **List rendering**: `links.map` with `key={link.href}` (stable, unique per route).
+- **Attributes**: `href={link.href}`; avoid passing children as anything other than the label text unless design changes.
+
+## Active route (selected tab)
+
+- **Condition**: `pathname === link.href` (exact match; no `startsWith` unless you intentionally support nested active states).
+- **Active classes**: `bg-emerald-500/20 text-emerald-400` — aligns with project “accent / positive” (see `project-conventions.mdc`).
+- **Inactive classes**: `text-gray-400` base; `hover:text-white hover:bg-gray-800` for hover. Include `transition-colors` on the base link class.
+
+## Layout & Tailwind structure
+
+- **`<nav>`**: `bg-gray-900 border-b border-gray-800` — app chrome (slightly above page `bg-gray-950` when used in layouts). **`sticky top-0 z-50`** so the bar stays above content while scrolling.
+- **Width**: Inner wrapper `max-w-5xl mx-auto px-4` to match content width used elsewhere in the app.
+- **Row**: `flex items-center gap-1 h-14 overflow-x-auto` — fixed bar height, horizontal scroll on small viewports, tight gap between items.
+- **Per-link**: `whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium` — pill-like nav items, no wrapping.
+- **Class merging**: One template literal for `className` with a ternary for active vs inactive branches (keep this pattern; avoid `clsx` unless the project already uses it in this file).
+
+## Formatting
+
+- **Indentation**: Tabs in this file (match existing `Navbar.tsx`).
+
+## When extending
+
+- New screens: add a `links` entry with `href` and pt-BR `label` first; only change sticky/max-width if the design system for the whole app changes.
+- Nested routes: if you need “section” highlighting, document the new matching rule (e.g. `pathname.startsWith(...)`) in a short comment to avoid surprising UX.

@@ -1,0 +1,97 @@
+---
+description: How to add or edit Cursor rules in our project
+globs:
+alwaysApply: false
+---
+
+# Cursor rules layout (`PROJECT_ROOT/.cursor/rules/`)
+
+```
+PROJECT_ROOT/
+└── .cursor/
+    └── rules/
+        ├── cursor-rules.mdc      # this file — rules folder map & activation
+        ├── application-stack.mdc
+        ├── directory-structure.mdc
+        ├── project-conventions.mdc
+        ├── api-routes.mdc
+        └── react-components.mdc
+```
+
+## Rule files
+
+| File                      | Purpose                                                                    | When it applies                        |
+| ------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| `application-stack.mdc`  | Pinned stack: Next, React, TS, Tailwind, Supabase, brapi, twelvedata, dev tools | `alwaysApply: true`                    |
+| `directory-structure.mdc` | Repo layout, important folders (`src/`, `scripts/`, `db/`), config files  | `alwaysApply: true`                    |
+| `project-conventions.mdc` | Stack summary, locale (pt-BR), types location, shared conventions         | `alwaysApply: true`                    |
+| `api-routes.mdc`          | Next.js App Router API handlers (`NextRequest` / `NextResponse`, patterns) | Glob: `src/app/api/**/*.ts`            |
+| `react-components.mdc`    | Client vs server components, async UI state, Cotação IBOV UI patterns      | Glob: `src/**/*.tsx`                   |
+| `cursor-rules.mdc`        | Where rules live and how the set above is organized                        | On demand / when this rule is attached |
+
+Add new rules as `*.mdc` in this folder. Use frontmatter: `description`, optional `globs`, and `alwaysApply` (prefer targeted globs over always-on unless the rule is broadly useful).
+
+# Cursor Rules Location
+
+How to add new cursor rules to the project
+
+1. Always place rule files in PROJECT_ROOT/.cursor/rules/:
+
+   ```
+   .cursor/rules/
+   ├── your-rule-name.mdc
+   ├── another-rule.mdc
+   └── ...
+   ```
+
+2. Follow the naming convention:
+   - Use kebab-case for filenames
+   - Always use .mdc extension
+   - Make names descriptive of the rule's purpose
+
+3. Directory structure:
+
+   ```
+   PROJECT_ROOT/
+   ├── .cursor/
+   │   └── rules/
+   │       ├── your-rule-name.mdc
+   │       └── ...
+   └── ...
+   ```
+
+4. Never place rule files:
+   - In the project root
+   - In subdirectories outside .cursor/rules
+   - In any other location
+
+5. Cursor rules have the following structure:
+
+````
+---
+description: Short description of the rule's purpose
+globs: optional/path/pattern/**/*
+alwaysApply: false
+---
+
+# Rule Title
+
+Main content explaining the rule with markdown formatting.
+
+1. Step-by-step instructions
+2. Code examples
+3. Guidelines
+
+Example:
+
+```typescript
+// Good example
+function goodExample() {
+  // Implementation following guidelines
+}
+
+// Bad example
+function badExample() {
+  // Implementation not following guidelines
+}
+````

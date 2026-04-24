@@ -1,0 +1,52 @@
+---
+description: Application stack and major dependency versions (from package.json)
+glob:
+alwaysApply: true
+---
+
+# Application stack & dependencies
+
+Values below mirror `package.json`. Caret (`^`) means compatible upgrades within the semver range; exact pins are fixed until changed in `package.json`.
+
+## Core runtime
+
+| Package      | Version | Role                        |
+| ------------ | ------- | --------------------------- |
+| `next`       | 16.2.1  | App Router, SSR, API routes |
+| `react`      | 19.2.4  | UI                          |
+| `react-dom`  | 19.2.4  | DOM rendering               |
+| `typescript` | ^5      | Language / compiler         |
+
+## Styling
+
+| Package                | Version | Role                               |
+| ---------------------- | ------- | ---------------------------------- |
+| `tailwindcss`          | ^4      | Utility-first CSS                  |
+| `@tailwindcss/postcss` | ^4      | PostCSS integration for Tailwind 4 |
+
+## Data & external services
+
+| Package                 | Version  | Role                                                  |
+| ----------------------- | -------- | ----------------------------------------------------- |
+| `@supabase/supabase-js` | ^2.100.1 | Supabase client (DB / server usage per project rules) |
+| `brapi`                 | ^1.0.1   | Brazilian market data API (server-side)               |
+| `twelvedata`            | ^3.0.1   | Market data API (e.g. US / global)                    |
+
+## Tooling (dev)
+
+| Package              | Version | Role                                              |
+| -------------------- | ------- | ------------------------------------------------- |
+| `eslint`             | ^9      | Linting                                           |
+| `eslint-config-next` | 16.2.1  | Next.js + React ESLint preset (aligned with Next) |
+| `tsx`                | ^4.21.0 | Run TypeScript scripts (e.g. `scripts/sync-*.ts`) |
+| `dotenv`             | ^17.4.2 | Load `.env` in Node scripts                       |
+| `@types/node`        | ^20     | Node typings                                      |
+| `@types/react`       | ^19     | React typings                                     |
+| `@types/react-dom`   | ^19     | React DOM typings                                 |
+
+## npm scripts (reference)
+
+- `dev` / `build` / `start` / `lint` — Next.js + ESLint
+- `sync-cotacoes` / `sync-cotacoes-us` — `tsx` entrypoints for sync scripts
+
+When bumping major versions, check release notes for Next, React, Tailwind, and ESLint together; align `eslint-config-next` with `next` when the project pins both.
