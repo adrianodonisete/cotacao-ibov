@@ -3,6 +3,7 @@ export interface Cotacao {
   code: string;
   date_update: string; // yyyy-mm-dd
   value: number;
+  maturity_date?: string | null; // yyyy-mm-dd
 }
 
 export type CotacaoUpsertInput = Omit<Cotacao, "id">;

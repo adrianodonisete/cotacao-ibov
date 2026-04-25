@@ -5,11 +5,13 @@ const BASE_URL = 'https://api.radaropcoes.com/bonds';
 export interface TesouroDiretoQuote {
 	value: number;
 	date_update: string; // yyyy-mm-dd (data local da consulta — API não devolve data)
+	maturity_date: string | null; // yyyy-mm-dd
 }
 
 interface RadarOpcoesBondResponse {
 	unitaryRedemptionValue: number;
 	unitaryInvestmentValue: number;
+	maturityDate?: string | null;
 }
 
 function isValidBondResponse(body: unknown): body is RadarOpcoesBondResponse {
@@ -54,8 +56,8 @@ export async function fetchTesouroDiretoQuote(
 	}
 
 	const value = valueType === 'investment' ? body.unitaryInvestmentValue : body.unitaryRedemptionValue;
-
+	const maturity_date = body.maturityDate ? new Date(body.maturityDate).toISOString().split('T')[0]! : null;
 	const date_update = new Date().toISOString().split('T')[0]!;
 
-	return { value, date_update };
+	return { value, date_update, maturity_date };
 }

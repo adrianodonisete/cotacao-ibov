@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS cotacoes (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code         VARCHAR(20)    NOT NULL,
     date_update  DATE           NOT NULL,
-    value        NUMERIC(15, 6) NOT NULL,
+    [value]        NUMERIC(15, 6) NOT NULL,
+    maturity_date  DATE           NULL,
     CONSTRAINT cotacoes_code_unique UNIQUE (code)
 );
 

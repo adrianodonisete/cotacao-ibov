@@ -39,9 +39,9 @@ function parseTextarea(text: string): { valid: ParsedAsset[]; ignoredCount: numb
 		}
 
 		const [rawCode, rawInfo, rawType, rawWeight] = cols;
-		const code = rawCode.trim().toUpperCase();
 		const info = rawInfo.trim();
 		const type = rawType.trim().toLowerCase();
+		const code = type === 'td' ? rawCode.trim() : rawCode.trim().toUpperCase();
 		const weightStr = rawWeight.trim().replace(',', '.');
 		const weight = parseFloat(weightStr);
 

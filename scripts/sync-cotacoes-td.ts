@@ -55,6 +55,7 @@ async function main(): Promise<CotacaoSyncResult> {
         code,
         value: quote.value,
         date_update: quote.date_update,
+        maturity_date: quote.maturity_date,
       };
 
       const { error: upsertError } = await supabase
