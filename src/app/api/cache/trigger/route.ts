@@ -88,6 +88,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		detached: true,
 		stdio: 'ignore',
 		shell: true,
+		windowsHide: true,
 	});
 	child.unref();
 
