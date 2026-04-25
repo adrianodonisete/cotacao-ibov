@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS aportes (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code            VARCHAR(20)    NOT NULL,
+    code            VARCHAR(50)    NOT NULL,
     qtd             NUMERIC(15, 6) NOT NULL,
     value_total     NUMERIC(15, 6) NOT NULL,
     date_operation  DATE           NOT NULL
