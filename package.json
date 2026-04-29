@@ -9,7 +9,8 @@
     "lint": "eslint",
     "sync-cotacoes": "tsx scripts/sync-cotacoes.ts",
     "sync-cotacoes-us": "tsx scripts/sync-cotacoes-us.ts",
-    "sync-cotacoes-td": "tsx scripts/sync-cotacoes-td.ts"
+    "sync-cotacoes-td": "tsx scripts/sync-cotacoes-td.ts",
+    "sync-cotacoes-indices": "tsx scripts/sync-cotacoes-indices.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",

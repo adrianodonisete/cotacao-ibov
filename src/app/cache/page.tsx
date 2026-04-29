@@ -36,6 +36,13 @@ const CRON_CARDS: CronCard[] = [
 		types: ['td'],
 		source: 'Radar Opções',
 	},
+	{
+		cron: 'sync-cotacoes-indices',
+		label: 'Sync Cotações Índices IPCA e SELIC',
+		description: 'Sincroniza IPCA (acumulado 12 meses) e SELIC meta via API do Banco Central.',
+		types: ['indice'],
+		source: 'BCB (api.bcb.gov.br)',
+	},
 ];
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {

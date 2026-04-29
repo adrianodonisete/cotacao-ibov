@@ -4,9 +4,15 @@ import path from 'path';
 import { getSupabaseServer } from '@/lib/supabase';
 import type { CronTriggerResponse } from '@/types/cron-job';
 
-type CronName = 'sync-cotacoes' | 'sync-cotacoes-us' | 'sync-cotacoes-td';
+type CronName = 'sync-cotacoes' | 'sync-cotacoes-us' | 'sync-cotacoes-td' | 'sync-cotacoes-indices';
 
-const CRON_CONFIG: Record<CronName, { script: string; types: string[] }> = {
+interface CronConfig {
+	script: string;
+	types?: string[];
+	fixedTotalSteps?: number;
+}
+
+const CRON_CONFIG: Record<CronName, CronConfig> = {
 	'sync-cotacoes': {
 		script: 'scripts/sync-cotacoes.ts',
 		types: ['acao', 'fii'],
@@ -18,6 +24,10 @@ const CRON_CONFIG: Record<CronName, { script: string; types: string[] }> = {
 	'sync-cotacoes-td': {
 		script: 'scripts/sync-cotacoes-td.ts',
 		types: ['td'],
+	},
+	'sync-cotacoes-indices': {
+		script: 'scripts/sync-cotacoes-indices.ts',
+		fixedTotalSteps: 2,
 	},
 };
 
@@ -49,20 +59,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		);
 	}
 
-	// Count total_steps (ativos of the relevant types)
-	const { count, error: countError } = await supabase
-		.from('ativos')
-		.select('id', { count: 'exact', head: true })
-		.in('type', config.types);
+	// Count total_steps:
+	// - Crons com `fixedTotalSteps` (ex.: índices BCB) usam o valor fixo direto.
+	// - Demais somam os ativos cadastrados nos `types` configurados.
+	let total_steps: number;
+	if (typeof config.fixedTotalSteps === 'number') {
+		total_steps = config.fixedTotalSteps;
+	} else {
+		const { count, error: countError } = await supabase
+			.from('ativos')
+			.select('id', { count: 'exact', head: true })
+			.in('type', config.types ?? []);
 
-	if (countError) {
-		return NextResponse.json(
-			{ error: `Erro ao contar ativos: ${countError.message}` },
-			{ status: 500 }
-		);
+		if (countError) {
+			return NextResponse.json(
+				{ error: `Erro ao contar ativos: ${countError.message}` },
+				{ status: 500 }
+			);
+		}
+
+		total_steps = count ?? 0;
 	}
-
-	const total_steps = count ?? 0;
 
 	// Insert job row
 	const { data: inserted, error: insertError } = await supabase
