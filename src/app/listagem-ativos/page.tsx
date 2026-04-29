@@ -153,7 +153,7 @@ export default function ListagemAtivos() {
               id="type-filter"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="rounded-lg bg-gray-800 border border-gray-700 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              className="select-standard"
             >
               {Object.entries(TYPES_ASSETS).map(([value, label]) => (
                 <option key={value} value={value}>

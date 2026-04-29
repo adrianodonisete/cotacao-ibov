@@ -73,7 +73,7 @@ export default function Navbar() {
 									<span className="text-xs leading-none">▾</span>
 								</button>
 								{openLabel === item.label && (
-									<div className="absolute top-full mt-1 left-0 bg-gray-900 border border-gray-800 rounded-lg shadow-lg min-w-[180px] z-50 py-1">
+									<div className="absolute top-full left-0 bg-gray-900 border border-gray-800 rounded-lg shadow-lg min-w-[180px] z-50 py-1 pt-2">
 										{item.children.map(child => (
 											<Link
 												key={child.href}

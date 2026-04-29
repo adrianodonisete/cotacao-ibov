@@ -257,7 +257,7 @@ export default function ListagemAportes() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard w-full"
               >
                 <option value="todos">Todos</option>
                 {Object.entries(TYPES_ASSETS).map(([val, label]) => (
@@ -300,7 +300,7 @@ export default function ListagemAportes() {
               <select
                 value={filterCurrency}
                 onChange={(e) => setFilterCurrency(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard w-full"
               >
                 <option value="todos">Todos</option>
                 {Object.keys(CURRENCIES).map((c) => (
@@ -325,7 +325,7 @@ export default function ListagemAportes() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard w-full"
               >
                 <option value="date_operation">Data</option>
                 <option value="code">Código</option>
@@ -336,7 +336,7 @@ export default function ListagemAportes() {
               <select
                 value={sortDir}
                 onChange={(e) => setSortDir(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard w-full"
               >
                 <option value="desc">Decrescente</option>
                 <option value="asc">Crescente</option>
@@ -353,7 +353,7 @@ export default function ListagemAportes() {
                   setPerPage(Number(e.target.value));
                   setPage(1);
                 }}
-                className="rounded-lg bg-gray-800 border border-gray-700 px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard"
               >
                 {PER_PAGE_OPTIONS.map((n) => (
                   <option key={n} value={n}>
@@ -545,7 +545,7 @@ export default function ListagemAportes() {
               <select
                 value={editCurrency}
                 onChange={(e) => setEditCurrency(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="select-standard w-full"
               >
                 {Object.keys(CURRENCIES).map((c) => (
                   <option key={c} value={c}>
