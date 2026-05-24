@@ -1,9 +1,9 @@
 /**
  * Job manual: atualiza a tabela `cotacoes` com os índices BCB
- * (IPCA acumulado 12 meses e SELIC meta).
+ * (IPCA acumulado 12 meses, SELIC meta e cotação PTAX do dólar).
  *
  * Requer `.env.local` com SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.
- * Dados obtidos via api.bcb.gov.br (sem token necessário).
+ * Dados obtidos via api.bcb.gov.br e olinda.bcb.gov.br (sem token necessário).
  *
  * Uso:
  *   npm run sync-cotacoes-indices
@@ -11,19 +11,33 @@
  */
 import './env';
 import { getSupabaseServer } from '../src/lib/supabase';
-import { BCB_SERIES, fetchBcbLatest } from '../src/lib/bcb-service';
+import { BCB_SERIES, fetchBcbLatest, fetchPtaxUsdLatest } from '../src/lib/bcb-service';
+import type { BcbQuote } from '../src/lib/bcb-service';
 import type { CotacaoSyncResult, CotacaoUpsertInput } from '../src/types/cotacao';
 import { parseJobId, updateJobProgress, finishJob } from './job-progress';
 
 interface IndiceTarget {
 	code: string;
-	serie: number;
 	label: string;
+	fetch: () => Promise<BcbQuote>;
 }
 
 const TARGETS: IndiceTarget[] = [
-	{ code: `BCB_${BCB_SERIES.IPCA_12M}`, serie: BCB_SERIES.IPCA_12M, label: 'IPCA 12M' },
-	{ code: `BCB_${BCB_SERIES.SELIC_META}`, serie: BCB_SERIES.SELIC_META, label: 'SELIC Meta' },
+	{
+		code: `BCB_${BCB_SERIES.IPCA_12M}`,
+		label: 'IPCA 12M',
+		fetch: () => fetchBcbLatest(BCB_SERIES.IPCA_12M),
+	},
+	{
+		code: `BCB_${BCB_SERIES.SELIC_META}`,
+		label: 'SELIC Meta',
+		fetch: () => fetchBcbLatest(BCB_SERIES.SELIC_META),
+	},
+	{
+		code: 'USD_BRL',
+		label: 'Dolar PTAX',
+		fetch: () => fetchPtaxUsdLatest(),
+	},
 ];
 
 async function main(): Promise<CotacaoSyncResult> {
@@ -37,7 +51,7 @@ async function main(): Promise<CotacaoSyncResult> {
 
 	for (const target of TARGETS) {
 		try {
-			const quote = await fetchBcbLatest(target.serie);
+			const quote = await target.fetch();
 
 			const upsertInput: CotacaoUpsertInput = {
 				code: target.code,
@@ -46,9 +60,7 @@ async function main(): Promise<CotacaoSyncResult> {
 				maturity_date: null,
 			};
 
-			const { error: upsertError } = await supabase
-				.from('cotacoes')
-				.upsert(upsertInput, { onConflict: 'code' });
+			const { error: upsertError } = await supabase.from('cotacoes').upsert(upsertInput, { onConflict: 'code' });
 
 			if (upsertError) {
 				console.error(`[${target.code}] Erro ao gravar cotacoes:`, upsertError.message);

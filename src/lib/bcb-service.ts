@@ -10,6 +10,7 @@
  */
 
 const BASE_URL = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs';
+const PTAX_BASE_URL = 'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata';
 
 export const BCB_SERIES = {
 	IPCA_12M: 13522,
@@ -80,4 +81,69 @@ export async function fetchBcbLatest(serie: number): Promise<BcbQuote> {
 		value,
 		date_update: parseBrDate(row.data),
 	};
+}
+
+interface PtaxRow {
+	cotacaoCompra: number;
+	cotacaoVenda: number;
+	dataHoraCotacao: string; // "yyyy-MM-dd HH:mm:ss.SSS"
+}
+
+interface PtaxResponse {
+	value?: PtaxRow[];
+}
+
+function isValidPtaxResponse(body: unknown): body is PtaxResponse {
+	return typeof body === 'object' && body !== null && 'value' in body;
+}
+
+/** `Date` -> "MM-DD-YYYY" (formato exigido pelo Olinda PTAX). */
+function formatPtaxDate(d: Date): string {
+	const mm = String(d.getMonth() + 1).padStart(2, '0');
+	const dd = String(d.getDate()).padStart(2, '0');
+	const yyyy = d.getFullYear();
+	return `${mm}-${dd}-${yyyy}`;
+}
+
+/**
+ * Busca a última cotação PTAX de compra do dólar publicada.
+ *
+ * PTAX só publica em dias úteis; em fins de semana / feriados a API responde
+ * com `value: []`. Esta função tenta D-0, D-1, ..., até `maxDaysBack` dias atrás
+ * e retorna a primeira data com cotação disponível.
+ *
+ * @param maxDaysBack Número máximo de dias para retroceder (default 7).
+ * @returns `{ value, date_update }` com `value` = `cotacaoCompra` e `date_update` em `yyyy-mm-dd`.
+ */
+export async function fetchPtaxUsdLatest(maxDaysBack = 7): Promise<BcbQuote> {
+	const today = new Date();
+
+	for (let i = 0; i <= maxDaysBack; i++) {
+		const target = new Date(today);
+		target.setDate(today.getDate() - i);
+
+		const url =
+			`${PTAX_BASE_URL}/CotacaoDolarDia(dataCotacao=@dataCotacao)` +
+			`?@dataCotacao=%27${formatPtaxDate(target)}%27&$top=1&$format=json`;
+
+		const res = await fetch(url);
+
+		if (!res.ok) continue;
+
+		const body: unknown = await res.json();
+		if (!isValidPtaxResponse(body)) continue;
+
+		const row = body.value?.[0];
+		if (!row) continue;
+
+		const value = Number(row.cotacaoCompra);
+		if (!Number.isFinite(value)) continue;
+
+		const date_update = row.dataHoraCotacao.split(' ')[0];
+		if (!date_update) continue;
+
+		return { value, date_update };
+	}
+
+	throw new Error(`[BcbService] PTAX sem cotacao nos ultimos ${maxDaysBack} dias.`);
 }

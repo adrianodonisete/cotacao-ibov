@@ -27,7 +27,7 @@ const CRON_CONFIG: Record<CronName, CronConfig> = {
 	},
 	'sync-cotacoes-indices': {
 		script: 'scripts/sync-cotacoes-indices.ts',
-		fixedTotalSteps: 2,
+		fixedTotalSteps: 3,
 	},
 };
 

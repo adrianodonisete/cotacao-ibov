@@ -1,0 +1,19 @@
+atue como um dev nextjs senior.
+gerar o plan para buscar a cotação do dólar atual.
+salvar o plan em dev/plans/cron-cotacoes-indices/alterar-cron-indices-add-dolar.md
+alterar o @scripts/sync-cotacoes-indices.ts pra buscar a cotação dolar atual com essa URL:
+"https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao=%2705-20-2026%27&$top=1&$format=json"
+Onde "@dataCotacao" é a data do dia.
+Formato do json de retorno:
+{
+  "@odata.context": "https://was-p.bcnet.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata$metadata#_CotacaoDolarDia",
+  "value": [
+    {
+      "cotacaoCompra": 5.0295,
+      "cotacaoVenda": 5.0301,
+      "dataHoraCotacao": "2026-05-20 13:05:27.747"
+    }
+  ]
+}
+utilizar a cotação do campo "cotacaoCompra".
+Salvar a cotação na tabela cotações (se existir, fazer update)
