@@ -30,7 +30,7 @@ UNIQUE (code, qtd, date_operation);
 
 /*
 
-Alteração na tabela "aportes":
+Alteração na tabela "aportes", novos campos:
     - Adicionar o campo currency (varchar 3 - default: BRL) na tabela "aportes".
     - Adicionar o campo dolar_value (numeric 15, 6 - default: 0.0) na tabela "aportes".
     - Adicionar o campo info (varchar 100) na tabela "aportes".
