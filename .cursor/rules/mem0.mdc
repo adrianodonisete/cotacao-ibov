@@ -1,0 +1,13 @@
+---
+description: Mem0 memory scope for Cotação IBOV (ibov_finance)
+alwaysApply: true
+---
+
+# Mem0 scope (this project)
+
+When using mem0 MCP tools (`add_memory`, `search_memories`, `get_memories`, `update_memory`, `delete_memory`, etc.):
+
+- Always set `user_id: "ibov_finance"` on writes
+- Always set `app_id: "ibov_finance"` on writes
+- Always filter reads with `{"AND": [{"user_id": "ibov_finance"}, {"app_id": "ibov_finance"}]}`
+- Never use the default `mem0-mcp` scope for this project
