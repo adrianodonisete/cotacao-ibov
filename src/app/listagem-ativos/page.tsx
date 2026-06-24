@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TYPES_ASSETS } from "@/lib/constants";
 import { Asset, AssetWithPercent } from "@/types/asset";
+import { Category } from "@/types/category";
 
 function calcPercent(assets: Asset[]): AssetWithPercent[] {
   const total = assets.reduce((sum, a) => sum + Number(a.weight), 0);
@@ -28,6 +28,7 @@ export default function ListagemAtivos() {
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const fetchAssets = useCallback(async (type: string) => {
     setLoading(true);
@@ -56,6 +57,17 @@ export default function ListagemAtivos() {
   useEffect(() => {
     fetchAssets("acao");
   }, [fetchAssets]);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => { if (d.categories) setCategories(d.categories); })
+      .catch(() => {});
+  }, []);
+
+  const categoryMap: Record<string, string> = Object.fromEntries(
+    categories.map(c => [c.name, c.label])
+  );
 
   function handleSearch() {
     fetchAssets(selectedType);
@@ -155,9 +167,9 @@ export default function ListagemAtivos() {
               onChange={(e) => setSelectedType(e.target.value)}
               className="select-standard"
             >
-              {Object.entries(TYPES_ASSETS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {categories.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -212,7 +224,7 @@ export default function ListagemAtivos() {
                           </td>
                           <td className="px-4 py-3 text-gray-300 max-w-xs">{asset.info}</td>
                           <td className="px-4 py-3 text-gray-400">
-                            {TYPES_ASSETS[asset.type] ?? asset.type}
+                            {categoryMap[asset.type] ?? asset.type}
                           </td>
                           <td className="px-4 py-3 text-right text-gray-300">
                             {Number(asset.weight).toFixed(2)}
@@ -258,7 +270,7 @@ export default function ListagemAtivos() {
               <p className="font-mono text-white">{editingAsset.code}</p>
             </Field>
             <Field label="Tipo">
-              <p className="text-gray-400">{TYPES_ASSETS[editingAsset.type] ?? editingAsset.type}</p>
+              <p className="text-gray-400">{categoryMap[editingAsset.type] ?? editingAsset.type}</p>
             </Field>
             <Field label="Informações">
               <input

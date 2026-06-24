@@ -1,0 +1,24 @@
+Atue como um dev nextjs senior.
+
+Preciso alterar a constante TYPES_ASSETS para utilizar uma nova tabela no banco de dados.
+
+A nova tabela é:
+categories (trocar a constante TYPES_ASSETS para categories):
+    - id (int - auto incremento)
+    - name (varchar 255)
+    - label (varchar 255)
+    - PRIMARY KEY: id
+    - NOT NULL: id, name, label
+    - UNIQUE: name
+    - INDEX: name
+
+Gerar o script para criar a tabela "categories" no banco de dados e salvar o script em um arquivo "create_table_categories.sql" no diretório "db/supabase/".
+Também gerar o script para criar os registros na tabela "categories" e salvar o script em um arquivo "insert_categories.sql" no diretório "db/supabase/".
+Exemplos de registros:
+    - id: 1, name: "acao", label: "Ação"
+    - id: 2, name: "fii", label: "FII"
+    - id: 3, name: "stock", label: "Stock"
+    - id: 4, name: "reit", label: "REIT"
+    - id: 5, name: "td", label: "Tesouro Direto"
+
+Alterar todas as referências à constante TYPES_ASSETS para utilizar a nova tabela "categories".

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TYPES_ASSETS, CURRENCIES } from "@/lib/constants";
+import { CURRENCIES } from "@/lib/constants";
 import { Aporte } from "@/types/aporte";
 import { Asset } from "@/types/asset";
+import { Category } from "@/types/category";
 
 function todayStr(): string {
   return new Date().toISOString().split("T")[0];
@@ -74,6 +75,7 @@ export default function ListagemAportes() {
   const [hasSearched, setHasSearched] = useState(false);
 
   const [assetTypeMap, setAssetTypeMap] = useState<Record<string, string>>({});
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [editingAporte, setEditingAporte] = useState<Aporte | null>(null);
   const [editQtd, setEditQtd] = useState("");
@@ -104,6 +106,17 @@ export default function ListagemAportes() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => { if (d.categories) setCategories(d.categories); })
+      .catch(() => {});
+  }, []);
+
+  const categoryMap: Record<string, string> = Object.fromEntries(
+    categories.map(c => [c.name, c.label])
+  );
 
   const buildQuery = useCallback(
     (currentPage: number) => {
@@ -260,9 +273,9 @@ export default function ListagemAportes() {
                 className="select-standard w-full"
               >
                 <option value="todos">Todos</option>
-                {Object.entries(TYPES_ASSETS).map(([val, label]) => (
-                  <option key={val} value={val}>
-                    {label}
+                {categories.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -419,7 +432,7 @@ export default function ListagemAportes() {
                       {aportes.map((aporte) => {
                         const assetType = assetTypeMap[aporte.code];
                         const typeLabel = assetType
-                          ? (TYPES_ASSETS[assetType] ?? assetType)
+                          ? (categoryMap[assetType] ?? assetType)
                           : "—";
                         const currency = aporte.currency ?? "BRL";
                         return (

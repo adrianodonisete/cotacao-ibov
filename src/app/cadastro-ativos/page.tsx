@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { TYPES_ASSETS } from '@/lib/constants';
+import { useState, useEffect } from 'react';
+import { Category } from '@/types/category';
 
 interface ParsedAsset {
 	code: string;
@@ -22,7 +22,7 @@ interface InsertResult {
 	ignoredCount: number;
 }
 
-function parseTextarea(text: string): { valid: ParsedAsset[]; ignoredCount: number } {
+function parseTextarea(text: string, categoryMap: Record<string, string>): { valid: ParsedAsset[]; ignoredCount: number } {
 	const lines = text.split('\n');
 	const seenCodes = new Set<string>();
 	const valid: ParsedAsset[] = [];
@@ -45,7 +45,7 @@ function parseTextarea(text: string): { valid: ParsedAsset[]; ignoredCount: numb
 		const weightStr = rawWeight.trim().replace(',', '.');
 		const weight = parseFloat(weightStr);
 
-		if (!code || !info || !type || !TYPES_ASSETS[type] || isNaN(weight)) {
+		if (!code || !info || !type || !categoryMap[type] || isNaN(weight)) {
 			ignoredCount++;
 			continue;
 		}
@@ -80,12 +80,24 @@ export default function CadastroAtivos() {
 	const [result, setResult] = useState<InsertResult | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [categories, setCategories] = useState<Category[]>([]);
+
+	useEffect(() => {
+		fetch('/api/categories')
+			.then(r => r.json())
+			.then(d => { if (d.categories) setCategories(d.categories); })
+			.catch(() => {});
+	}, []);
+
+	const categoryMap: Record<string, string> = Object.fromEntries(
+		categories.map(c => [c.name, c.label])
+	);
 
 	async function handleParse() {
 		setError(null);
 		setLoading(true);
 
-		const { valid, ignoredCount } = parseTextarea(rawText);
+		const { valid, ignoredCount } = parseTextarea(rawText, categoryMap);
 
 		if (valid.length === 0) {
 			setError('Nenhuma linha válida encontrada. Verifique o formato dos dados.');
@@ -174,9 +186,9 @@ export default function CadastroAtivos() {
 					<p className="mt-1 text-gray-400 text-sm">
 						Cada linha: <code className="text-emerald-400">código;informação;tipo;peso</code>
 						{' — '}tipos aceitos:{' '}
-						{Object.keys(TYPES_ASSETS).map((t, i, arr) => (
-							<span key={t}>
-								<code className="text-emerald-400">{t}</code>
+						{categories.map((c, i, arr) => (
+							<span key={c.name}>
+								<code className="text-emerald-400">{c.name}</code>
 								{i < arr.length - 1 ? ', ' : ''}
 							</span>
 						))}
@@ -265,7 +277,7 @@ export default function CadastroAtivos() {
 											className="hover:bg-gray-800/50 transition-colors">
 											<td className="px-4 py-3 font-mono font-semibold text-white">{a.code}</td>
 											<td className="px-4 py-3 text-gray-300 max-w-xs truncate">{a.info}</td>
-											<td className="px-4 py-3 text-gray-400">{TYPES_ASSETS[a.type] ?? a.type}</td>
+											<td className="px-4 py-3 text-gray-400">{categoryMap[a.type] ?? a.type}</td>
 											<td className="px-4 py-3 text-right text-gray-300">{a.weight.toFixed(2)}</td>
 											<td className={`px-4 py-3 text-right font-medium ${STATUS_CLASS[a.status]}`}>
 												{STATUS_LABEL[a.status]}
