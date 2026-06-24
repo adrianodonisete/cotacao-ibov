@@ -42,8 +42,11 @@ export async function fetchTesouroDiretoQuote(
 	}
 
 	const url = `${BASE_URL}/${encodeURIComponent(code)}`;
-	console.log(url);
-	const res = await fetch(url);
+	const res = await fetch(url, {
+		headers: {
+			'Authorization': `Bearer ${process.env.RADAROPCOES_API_KEY}`,
+		},
+	});
 
 	if (!res.ok) {
 		throw new Error(`[TesouroDiretoService] HTTP ${res.status} ao buscar "${code}".`);
