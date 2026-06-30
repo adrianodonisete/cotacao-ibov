@@ -10,7 +10,8 @@
     "sync-cotacoes": "tsx scripts/sync-cotacoes.ts",
     "sync-cotacoes-us": "tsx scripts/sync-cotacoes-us.ts",
     "sync-cotacoes-td": "tsx scripts/sync-cotacoes-td.ts",
-    "sync-cotacoes-indices": "tsx scripts/sync-cotacoes-indices.ts"
+    "sync-cotacoes-indices": "tsx scripts/sync-cotacoes-indices.ts",
+    "calculate-totals-by-category": "tsx scripts/calculate-totals-by-category.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",

@@ -4,7 +4,7 @@ import path from 'path';
 import { getSupabaseServer } from '@/lib/supabase';
 import type { CronTriggerResponse } from '@/types/cron-job';
 
-type CronName = 'sync-cotacoes' | 'sync-cotacoes-us' | 'sync-cotacoes-td' | 'sync-cotacoes-indices';
+type CronName = 'sync-cotacoes' | 'sync-cotacoes-us' | 'sync-cotacoes-td' | 'sync-cotacoes-indices' | 'calculate-totals-by-category';
 
 interface CronConfig {
 	script: string;
@@ -28,6 +28,10 @@ const CRON_CONFIG: Record<CronName, CronConfig> = {
 	'sync-cotacoes-indices': {
 		script: 'scripts/sync-cotacoes-indices.ts',
 		fixedTotalSteps: 3,
+	},
+	'calculate-totals-by-category': {
+		script: 'scripts/calculate-totals-by-category.ts',
+		fixedTotalSteps: 5,
 	},
 };
 

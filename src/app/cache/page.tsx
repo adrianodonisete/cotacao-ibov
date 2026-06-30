@@ -43,6 +43,13 @@ const CRON_CARDS: CronCard[] = [
 		types: ['indice'],
 		source: 'BCB (api.bcb.gov.br + olinda.bcb.gov.br)',
 	},
+	{
+		cron: 'calculate-totals-by-category',
+		label: 'Calcular Totais por Categoria',
+		description: 'Calcula e atualiza os totais agregados (aportes, valor atual, peso) para cada categoria de ativo.',
+		types: ['acao', 'fii', 'stock', 'reit', 'td'],
+		source: 'Supabase (agregação)',
+	},
 ];
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {
@@ -107,6 +114,13 @@ function CronCardComponent({ card }: { card: CronCard }) {
 		}
 	}, [card.cron]);
 
+	function stopPolling() {
+		if (pollRef.current) {
+			clearInterval(pollRef.current);
+			pollRef.current = null;
+		}
+	}
+
 	const startPolling = useCallback(() => {
 		if (pollRef.current) return;
 		pollRef.current = setInterval(async () => {
@@ -116,13 +130,6 @@ function CronCardComponent({ card }: { card: CronCard }) {
 			if (allDone) stopPolling();
 		}, POLL_INTERVAL_MS);
 	}, [fetchStatus]);
-
-	function stopPolling() {
-		if (pollRef.current) {
-			clearInterval(pollRef.current);
-			pollRef.current = null;
-		}
-	}
 
 	useEffect(() => {
 		fetchStatus().then(data => {
