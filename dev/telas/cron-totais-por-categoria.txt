@@ -1,0 +1,28 @@
+atue como um dev nextjs senior.
+
+preciso criar uma nova cron com os totais por categoria da tabela "ativos inner join aportes" e "ativos inner join cotacoes".
+
+gerar o script para criar a tabela "total_categories_cache" no supabase e salvar o script em um arquivo "create_table_total_categories_cache.sql" no diretório "db/supabase/".
+Campos:
+    - id (int - auto incremento)
+    - category (varchar 20) [valores: acao, fii, stock, reit, td]
+    - total_assets_value_aported (numeric 15, 6) (soma dos aportes dos ativos da categoria tabela "ativos inner join aportes")
+    - total_assets_value_current (numeric 15, 6) (soma dos montantes dos valores atuais dos ativos da categoria tabela "ativos inner join cotacoes")
+    - total_assets_weight (numeric 10, 2) (soma dos pesos dos ativos da categoria tabela ativos)
+    - updated_at (timestamp)
+    - PRIMARY KEY: id
+    - NOT NULL: id, category, total_assets_value_aported, total_assets_value_current, total_assets_weight
+    - UNIQUE: category
+    - INDEX: category
+
+Essa tabela será preenchida por uma nova cron job "/scripts/calculate-totals-by-category.ts".
+Criar a cron "/scripts/calculate-totals-by-category.ts"
+Essa cron vai calcular o total conforme regras especificadas abaixo:
+    - total_assets_value_aported: soma dos aportes dos ativos da categoria tabela "ativos inner join aportes"
+    - total_assets_value_current: soma dos montantes dos valores atuais dos ativos da categoria tabela "ativos inner join cotacoes"
+    - total_assets_weight: soma dos pesos dos ativos da categoria tabela ativos
+
+Depois de calcular o total pra cada categoria, salvar na tabela "total_categories_cache", se já existir "category", fazer update dos totais.
+Criar um botão na tela "Cache Conteúdo" para disparar essa nova cron job.
+
+salvar a plan em dev/plans/cron-totais-por-categoria/create-cron-totais-por-categoria.md
