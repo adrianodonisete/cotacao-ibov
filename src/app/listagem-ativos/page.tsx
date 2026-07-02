@@ -55,8 +55,8 @@ export default function ListagemAtivos() {
   }, []);
 
   useEffect(() => {
-    fetchAssets("acao");
-  }, [fetchAssets]);
+    fetchAssets(selectedType);
+  }, [selectedType, fetchAssets]);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -68,10 +68,6 @@ export default function ListagemAtivos() {
   const categoryMap: Record<string, string> = Object.fromEntries(
     categories.map(c => [c.name, c.label])
   );
-
-  function handleSearch() {
-    fetchAssets(selectedType);
-  }
 
   function openEdit(asset: Asset) {
     setEditingAsset(asset);
@@ -153,19 +149,20 @@ export default function ListagemAtivos() {
         </div>
 
         {/* Filter */}
-        <div className="flex gap-3 mb-8">
-          <div>
-            <label
-              htmlFor="type-filter"
-              className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5"
-            >
-              Tipo de Ativo
-            </label>
+        <div className="mb-8">
+          <label
+            htmlFor="type-filter"
+            className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5"
+          >
+            Tipo de Ativo
+          </label>
+          <div className="flex items-center gap-3">
             <select
               id="type-filter"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="select-standard"
+              disabled={loading}
+              className="select-standard disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {categories.map((c) => (
                 <option key={c.name} value={c.name}>
@@ -173,15 +170,9 @@ export default function ListagemAtivos() {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold text-gray-950 transition-colors"
-            >
-              {loading ? "Buscando..." : "Buscar"}
-            </button>
+            {loading && (
+              <span className="text-sm text-gray-400">Carregando...</span>
+            )}
           </div>
         </div>
 
@@ -210,7 +201,7 @@ export default function ListagemAtivos() {
                       <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
                         <th className="px-4 py-3 text-left">Código</th>
                         <th className="px-4 py-3 text-left">Informações</th>
-                        <th className="px-4 py-3 text-left">Tipo</th>
+                        <th className="px-4 py-3 text-left">Categoria</th>
                         <th className="px-4 py-3 text-right">Peso</th>
                         <th className="px-4 py-3 text-right">Peso %</th>
                         <th className="px-4 py-3 text-center">Ações</th>
