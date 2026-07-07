@@ -3,7 +3,7 @@ atue como um dev nextjs senior.
 preciso criar uma novas telas para exibir os totais por asset (ativos) "ativos inner join aportes" e "ativos inner join cotacoes".
 
 Cada categoria deve ser exibida em uma tela diferente.
-Adicionar no menu um novo NavBar com "children" para cada categoria.
+Adicionar no menu um novo NavBar "Totais por Categorias" com "children" para cada categoria.
 
 URLs de cada tela:
     - /total-assets/acao (Label: Totais por Ações)

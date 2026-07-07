@@ -26,6 +26,13 @@ const navItems: NavItem[] = [
 			{ href: '/listagem-aportes', label: 'Listar Aportes' },
 		],
 	},
+	{
+		label: 'Totais por Categoria',
+		children: [
+			{ href: '/total-assets/acao', label: 'Totais por Ações' },
+			{ href: '/total-assets/fii', label: 'Totais por FIIs' },
+		],
+	},
 	{ label: 'Cache Conteúdo', href: '/cache' },
 ];
 
