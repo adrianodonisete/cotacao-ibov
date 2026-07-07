@@ -1,0 +1,43 @@
+atue como um dev nextjs senior.
+
+preciso criar uma novas telas para exibir os totais por asset (ativos) "ativos inner join aportes" e "ativos inner join cotacoes".
+
+Cada categoria deve ser exibida em uma tela diferente.
+Adicionar no menu um novo NavBar com "children" para cada categoria.
+
+URLs de cada tela:
+    - /total-assets/acao (Label: Totais por Ações)
+    - /total-assets/fii (Label: Totais por FIIs)
+    - /total-assets/stock (Label: Totais por Stocks)
+    - /total-assets/reit (Label: Totais por REITs)
+    - /total-assets/td (Label: Totais por Tesouro Direto)
+
+Primeiro, vamos criar a tela "Totais por Ações" com as colunas definidas abaixo.
+Essa tela será igual a tela "Totais por FIIs" (próximo passo), com a diferença de que essa tela (/total-assets/acao) deve filtrar os ativos da categoria "acao".
+Verificar a categoria na URL, e mostrar os totais dos assets da categoria definida na URL (nesse caso, "acao").
+Essa tela será utilizada somente nas categorias "acao" e "fii".
+
+colunas na tela "Totais por Ações", filtrar os ativos da categoria "acao":
+    - Código (tabela total_assets_cache->code)
+    - Categoria (tabela total_assets_cache->category_name)
+    - Informações (tabela ativos->descricao)
+    - Peso (tabela ativos->weight)
+    - % Objetivo (tabela total_assets_cache->percentual_objetivo)
+    - R$ Objetivo (tabela total_assets_cache->montante_objetivo)
+    - Quantidade (tabela total_assets_cache->total_qtd)
+    - Cotação (tabela total_assets_cache->cotacao)
+    - R$ Aportado (tabela total_assets_cache->total_aportado)
+    - % Aportado (tabela total_assets_cache->percentual_aportado)
+    - R$ Montante Atual (tabela total_assets_cache->montante_atual)
+    - % Montante Atual (tabela total_assets_cache->percentual_montante_atual)
+    - R$ Lucro (tabela total_assets_cache->lucro)
+    - % Lucro (tabela total_assets_cache->percentual_lucro)
+    - R$ Montante Falta (tabela total_assets_cache->montante_falta)
+    - % Montante Falta (tabela total_assets_cache->percentual_falta)
+    - Primeiro Aporte (tabela total_assets_cache->primeiro_aporte)
+    - Último Aporte (tabela total_assets_cache->ultimo_aporte)
+    
+
+Segundo, vamos criar a tela "Totais por FIIs" com as colunas definidas no passo anterior.
+Essa tela será igual a tela "Totais por Ações" (passo anterior), com a diferença de que essa tela (/total-assets/fii) deve filtrar os ativos da categoria "fii".
+Verificar a categoria na URL, e mostrar os totais dos assets da categoria definida na URL (nesse caso, "fii").

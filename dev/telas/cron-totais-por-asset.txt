@@ -1,0 +1,53 @@
+atue como um dev nextjs senior.
+
+preciso criar uma nova cron com os totais por asset (ativos) "ativos inner join aportes" e "ativos inner join cotacoes".
+
+gerar o script para criar a tabela "total_assets_cache" no supabase e salvar o script em um arquivo "create_table_total_assets_cache.sql" no diretório "db/supabase/".
+Campos:
+    - id (int - auto incremento)
+    - code (varchar 50) (pegar na tabela ativos) "codigo"
+    - category_name (varchar 20) [valores: acao, fii, stock, reit, td] (pegar na tabela ativos) "categoria"
+    - percentual_objetivo (numeric 10, 2) (total_peso (tabela total_categories_cache->total_assets_weight) / peso) 
+    - montante_objetivo (numeric 15, 6) (total_assets_value_current (tabela total_categories_cache->total_assets_value_current) * percentual_objetivo)
+    - total_qtd (numeric 15, 6) (total agrupado por code na tabela aportes) "Total Ativos"
+    - cotacao (numeric 15, 6) (pegar na tabela cotacoes) "Cotação"
+    - total_aportado (numeric 15, 6) (total agrupado por code na tabela aportes, campo "value_total") "Aportado"
+    - percentual_aportado (numeric 10, 2) (total_aportado / total_categories_cache->total_assets_value_current) "Aportado %"
+    - montante_atual (numeric 15, 6) (total_qtd * cotacao) "Montante Atual"
+    - percentual_montante_atual (numeric 10, 2) (montante_atual / total_categories_cache->total_assets_value_current) "Montante Atual %"
+    - lucro (numeric 15, 6) (montante_atual - total_aportado) "R$ Lucro"
+    - percentual_lucro (numeric 10, 2) (lucro / total_aportado) "% Lucro"
+    - montante_falta (numeric 15, 6) (montante_objetivo - montante_atual) "R$ Falta"
+    - percentual_falta (numeric 10, 2) (montante_falta / montante_objetivo) "% Falta"
+    - primeiro_aporte (pegar na tabela aportes) "Primeiro Aporte" (data do primeiro aporte do ativo)
+    - ultimo_aporte (pegar na tabela aportes) "Último Aporte" (data do último aporte do ativo)
+
+Essa tabela será preenchida por uma nova cron job "/scripts/calculate-totals-by-assets.ts".
+Criar a cron "/scripts/calculate-totals-by-assets.ts"
+    - code: (pegar na tabela ativos) "codigo"
+    - category_name: [valores: acao, fii, stock, reit, td] (pegar na tabela ativos) "categoria"
+    - percentual_objetivo: (total_peso (tabela total_categories_cache->total_assets_weight) / peso (tabela ativos "weight")) 
+    - montante_objetivo: (total_assets_value_current (tabela total_categories_cache->total_assets_value_current) * percentual_objetivo (calculado no passo anterior))
+    - total_qtd: (total agrupado por code na tabela aportes, campo "qtd") "Total Ativos"
+    - cotacao: (pegar na tabela cotacoes, campo "value") "Cotação"
+    - total_aportado: (total agrupado por code na tabela aportes, campo "value_total") "Aportado"
+    - montante_atual: (total_qtd * cotacao) "Montante Atual"
+    - percentual_aportado: (total_aportado / total_categories_cache->total_assets_value_current) "Aportado %"
+    - percentual_montante_atual: (montante_atual / total_categories_cache->total_assets_value_current) "Montante Atual %"
+    - lucro: (montante_atual - total_aportado) "Lucro"
+    - percentual_lucro: (lucro / total_aportado) "Lucro %"
+    - montante_falta: (montante_objetivo - montante_atual) "R$ Falta"
+    - percentual_falta: (montante_falta / montante_objetivo) "% Falta"
+    - primeiro_aporte: (pegar na tabela aportes) "Primeiro Aporte" (data do primeiro aporte do ativo)
+    - ultimo_aporte: (pegar na tabela aportes) "Último Aporte" (data do último aporte do ativo)
+
+Depois de calcular o total pra cada asset (ativo), salvar na tabela "total_assets_cache", se já existir "code", fazer update dos totais.
+Criar um botão na tela "Cache Conteúdo" para disparar essa nova cron job.
+
+Passo a passo:
+  1. Gerar o script para criar a tabela "total_assets_cache" no supabase, conforme definido nas linhas 5 a 23.
+    1.1. Salvar o script em "db/supabase/create_table_total_assets_cache.sql".
+  2. Ler todos os ativos da tabela "ativos"
+    2.1. para cada ativo, calcular os totais ou preencher os campos conforme regras especificadas nas linhas 27 a 42.
+    2.2. salvar o resultado na tabela "total_assets_cache".
+  3. Salvar a plan em dev/plans/cron-totais-por-assets/create-cron-totais-por-assets.md
