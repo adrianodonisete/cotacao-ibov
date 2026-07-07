@@ -50,6 +50,14 @@ const CRON_CARDS: CronCard[] = [
 		types: ['acao', 'fii', 'stock', 'reit', 'td'],
 		source: 'Supabase (agregação)',
 	},
+	{
+		cron: 'calculate-totals-by-assets',
+		label: 'Calcular Totais por Ativo',
+		description:
+			'Calcula montante objetivo, aporte, lucro, montante faltante e datas do primeiro/último aporte para cada ativo, gravando em total_assets_cache.',
+		types: ['acao', 'fii', 'stock', 'reit', 'td'],
+		source: 'Supabase (agregação)',
+	},
 ];
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {

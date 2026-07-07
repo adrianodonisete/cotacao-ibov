@@ -41,3 +41,10 @@ colunas na tela "Totais por Ações", filtrar os ativos da categoria "acao":
 Segundo, vamos criar a tela "Totais por FIIs" com as colunas definidas no passo anterior.
 Essa tela será igual a tela "Totais por Ações" (passo anterior), com a diferença de que essa tela (/total-assets/fii) deve filtrar os ativos da categoria "fii".
 Verificar a categoria na URL, e mostrar os totais dos assets da categoria definida na URL (nesse caso, "fii").
+
+
+Passo a passo:
+  1. Criar as telas "Totais por Ações" e "Totais por FIIs"
+    1.1. Verificar a categoria na URL, e mostrar os totais dos assets dessa categoria
+    1.2. Essa tela é somente pras categorias "acao" e "fii".
+  2. Salvar a plan em dev/plans/tela-totais-assets/create-tela-totais-assets.md
