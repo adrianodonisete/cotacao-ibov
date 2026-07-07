@@ -20,40 +20,45 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
   const supabase = getSupabaseServer();
   const jobId = parseJobId();
 
-  const { data: ativos, error: ativosError } = await supabase
-    .from("ativos")
-    .select("code, type, weight");
-
-  if (ativosError) {
-    console.error("Error listing assets:", ativosError.message);
-    if (jobId !== null) await finishJob(supabase, jobId, "error");
-    process.exit(1);
-  }
-
-  const ativosList: AtivoRow[] = (ativos ?? []) as AtivoRow[];
-  if (ativosList.length === 0) {
-    console.log("No assets found.");
-    if (jobId !== null) await finishJob(supabase, jobId, "done");
-    return { total: 0, ok: 0, fail: 0 };
-  }
-
-  const [aportesRes, cotacoesRes, catCacheRes] = await Promise.all([
-    supabase.from("aportes").select("code, qtd, value_total, date_operation"),
+  const [ativosRes, cotacoesRes, aportesRes, catCacheRes] = await Promise.all([
+    supabase.from("ativos").select("code, type, weight"),
     supabase.from("cotacoes").select("code, value"),
+    supabase.from("aportes").select("code, qtd, value_total, date_operation"),
     supabase
       .from("total_categories_cache")
       .select("category, total_assets_value_current, total_assets_weight"),
   ]);
 
-  if (aportesRes.error || cotacoesRes.error || catCacheRes.error) {
+  if (
+    ativosRes.error ||
+    cotacoesRes.error ||
+    aportesRes.error ||
+    catCacheRes.error
+  ) {
     const msg =
-      aportesRes.error?.message ??
+      ativosRes.error?.message ??
       cotacoesRes.error?.message ??
+      aportesRes.error?.message ??
       catCacheRes.error?.message ??
       "unknown";
     console.error("Error pre-loading data:", msg);
     if (jobId !== null) await finishJob(supabase, jobId, "error");
     process.exit(1);
+  }
+
+  const cotacoesByCode = new Map<string, number>();
+  for (const c of (cotacoesRes.data ?? []) as Array<{ code: string; value: number }>) {
+    cotacoesByCode.set(c.code, Number(c.value ?? 0));
+  }
+
+  const ativosList: AtivoRow[] = ((ativosRes.data ?? []) as AtivoRow[]).filter(
+    (a) => cotacoesByCode.has(a.code)
+  );
+
+  if (ativosList.length === 0) {
+    console.log("No assets with matching cotacao found.");
+    if (jobId !== null) await finishJob(supabase, jobId, "done");
+    return { total: 0, ok: 0, fail: 0 };
   }
 
   const aportesByCode = new Map<string, AporteAgg>();
@@ -77,11 +82,6 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
     if (d && (!cur.primeiro_aporte || d < cur.primeiro_aporte)) cur.primeiro_aporte = d;
     if (d && (!cur.ultimo_aporte || d > cur.ultimo_aporte)) cur.ultimo_aporte = d;
     aportesByCode.set(row.code, cur);
-  }
-
-  const cotacoesByCode = new Map<string, number>();
-  for (const c of (cotacoesRes.data ?? []) as Array<{ code: string; value: number }>) {
-    cotacoesByCode.set(c.code, Number(c.value ?? 0));
   }
 
   const catTotalsByName = new Map<string, CatTotals>();
