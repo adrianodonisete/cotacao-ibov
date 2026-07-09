@@ -77,7 +77,7 @@ export default function Navbar() {
             return (
               <div
                 key={item.label}
-                className="relative"
+                className="relative before:absolute before:top-full before:left-0 before:right-0 before:h-1 before:content-['']"
                 onMouseEnter={() => setOpenLabel(item.label)}
                 onMouseLeave={() => setOpenLabel(null)}
               >
