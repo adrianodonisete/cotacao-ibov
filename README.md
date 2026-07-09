@@ -4,7 +4,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Layout Version
 
-0.1 - Lauout dark with ggren text.
+0.1 - Lauyout dark with ggren text.
 
 ## Getting Started
 
