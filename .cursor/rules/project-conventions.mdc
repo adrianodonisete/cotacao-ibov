@@ -22,12 +22,58 @@ value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
 ```
 
-## Design System
-- Background: `bg-gray-950` (page) / `bg-gray-900` (cards)
-- Accent / positive: `text-emerald-400`, `bg-emerald-500`
-- Negative / error: `text-red-400`, `bg-red-900/40 border-red-700`
-- Text hierarchy: `text-white` → `text-gray-400` → `text-gray-500`
-- Borders: `border-gray-800` / `border-gray-700`
+## Design System (DESIGN.md — Claude/Anthropic-inspired)
+
+All design tokens are defined in `src/app/globals.css` under `@theme`. **Never inline hex values** — use the generated Tailwind utility classes.
+
+### Color tokens
+- **Canvas** (default page floor): `bg-canvas` / `text-ink` — warm cream `#faf9f5` on dark warm-ink `#141413`
+- **Cream cards**: `bg-surface-card` (`#efe9de`), `bg-surface-soft` (`#f5f0e8`), `bg-surface-cream-strong` (`#e8e0d2`)
+- **Hairline / divider**: `border-hairline` (`#e6dfd8`)
+- **Coral primary** (CTA + brand accent): `bg-primary` / `text-primary` (`#cc785c`)
+- **Coral hover/active**: `bg-primary-active` (`#a9583e`)
+- **Coral disabled**: `bg-primary-disabled` (`#e6dfd8`)
+- **Dark surfaces** (footer, mockup cards only — NOT data tables): `bg-surface-dark` (`#181715`), `bg-surface-dark-elev`, `bg-surface-dark-soft`; text `text-on-dark`, `text-on-dark-soft`
+- **Semantic — financial positive/negative** (kept distinct from coral):
+  - positive: `text-success` (`#5db872`) / `bg-success`
+  - warning: `text-warning` (`#d4a017`) / `bg-warning`
+  - negative: `text-error` (`#c64545`) / `bg-error`
+
+### Typography tokens
+- `font-display` — Cormorant Garamond 500 (slab/serif substitute for Copernicus)
+- `font-sans` — Inter (substitute for StyreneB)
+- `font-mono` — JetBrains Mono
+- Display sizes: `text-display-xl` (64), `text-display-lg` (48), `text-display-md` (36), `text-display-sm` (28)
+- Titles: `text-title-lg` (22/500), `text-title-md` (18/500), `text-title-sm` (16/500)
+- Body: `text-body-md` (16), `text-body-sm` (14)
+- Caption: `text-caption` (13/500), `text-caption-uppercase` (12/500/1.5px)
+- Display headlines: weight 400 (regular) — **never bold serif**
+- Sugar components in `src/components/ui/typography.tsx`: `<H1>`, `<H2>`, `<H3>`, `<Lead>`, `<Body>`, `<BodySm>`, `<Caption>`, `<Mono>`, `<TitleLg>`, `<TitleMd>`, `<TitleSm>`, `<Display>`
+
+### Component library (`src/components/ui/`)
+- `Button` — variants: `primary` | `secondary` | `secondary-on-dark` | `text-link` | `icon-circular` | `danger`
+- `Card` (+ `CardHeader`, `CardBody`, `CardFooter`) — variants: `feature` (cream) | `product-mockup-dark` | `code-window` | `callout-coral`
+- `Badge` (pill / coral) and `StatusBadge` (success / warning / error / muted)
+- `TextInput` (with `as="textarea"` support) — focused state: `border-primary` + `ring-2 ring-primary/20`
+- `StatusBanner` — tones: `error` | `success` | `warning` | `info`
+- `ProgressBar` — tones: `running` | `done` | `error`
+- `CategoryTab` — pill group for filters
+- `Modal` — controlled component with backdrop
+- `CalloutCard` — full-bleed coral CTA
+- `HeroBand` — 6/6 grid section
+- `Footer` — dark surface, 4 columns
+- `SpikeMark` — Anthropic 4-spoke radial SVG (wordmark icon)
+
+### Spacing & radius
+- Radius scale: `rounded-xs` (4), `rounded-sm` (6), `rounded-md` (8), `rounded-lg` (12), `rounded-xl` (16), `rounded-pill` (9999)
+- 96px section padding: use `py-24` (Tailwind default)
+- Card internal padding: `p-8` (32px) for feature cards; `p-12` (48px) for callouts; `p-6` (24px) for code-window
+
+### Hard rules
+- **No** `bg-gray-*`, `bg-emerald-*`, `bg-red-9*`, `bg-amber-*`, `bg-yellow-*` in any new code — use the tokens above
+- **No** `font-bold` on display headlines — serif stays 400
+- **No** cool blue / saturated cyan as accent — coral is the brand voltage
+- **Do not** paint data tables with `bg-surface-dark` — dark surfaces reserved for product mockups / footer
 
 ## Environment Variables
 - `BRAPI_TOKEN` in `.env.local` — never expose to the client, read only in API Routes

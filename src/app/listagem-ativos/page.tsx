@@ -1,8 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { Asset, AssetWithPercent } from "@/types/asset";
-import { Category } from "@/types/category";
+import { useState, useEffect, useCallback } from 'react';
+import { Asset, AssetWithPercent } from '@/types/asset';
+import { Category } from '@/types/category';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { CategoryTab } from '@/components/ui/CategoryTab';
+import { Modal } from '@/components/ui/Modal';
+import { StatusBanner } from '@/components/ui/StatusBanner';
+import { TextInput } from '@/components/ui/TextInput';
+import { H1, Caption, Mono } from '@/components/ui/typography';
 
 function calcPercent(assets: Asset[]): AssetWithPercent[] {
   const total = assets.reduce((sum, a) => sum + Number(a.weight), 0);
@@ -13,15 +20,15 @@ function calcPercent(assets: Asset[]): AssetWithPercent[] {
 }
 
 export default function ListagemAtivos() {
-  const [selectedType, setSelectedType] = useState("acao");
+  const [selectedType, setSelectedType] = useState('acao');
   const [assets, setAssets] = useState<AssetWithPercent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-  const [editInfo, setEditInfo] = useState("");
-  const [editWeight, setEditWeight] = useState("");
+  const [editInfo, setEditInfo] = useState('');
+  const [editWeight, setEditWeight] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -39,7 +46,7 @@ export default function ListagemAtivos() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Erro ao buscar ativos.");
+        setError(data.error ?? 'Erro ao buscar ativos.');
         setAssets([]);
         return;
       }
@@ -47,7 +54,7 @@ export default function ListagemAtivos() {
       setAssets(calcPercent(data.assets ?? []));
       setHasSearched(true);
     } catch {
-      setError("Falha na comunicação com o servidor.");
+      setError('Falha na comunicação com o servidor.');
       setAssets([]);
     } finally {
       setLoading(false);
@@ -59,7 +66,7 @@ export default function ListagemAtivos() {
   }, [selectedType, fetchAssets]);
 
   useEffect(() => {
-    fetch("/api/categories")
+    fetch('/api/categories')
       .then((r) => r.json())
       .then((d) => { if (d.categories) setCategories(d.categories); })
       .catch(() => {});
@@ -68,6 +75,10 @@ export default function ListagemAtivos() {
   const categoryMap: Record<string, string> = Object.fromEntries(
     categories.map(c => [c.name, c.label])
   );
+
+  const tabOptions = [
+    ...categories.map(c => ({ value: c.name, label: c.label })),
+  ];
 
   function openEdit(asset: Asset) {
     setEditingAsset(asset);
@@ -78,14 +89,14 @@ export default function ListagemAtivos() {
 
   async function handleEditSave() {
     if (!editingAsset) return;
-    const weightNum = parseFloat(editWeight.replace(",", "."));
+    const weightNum = parseFloat(editWeight.replace(',', '.'));
 
     if (!editInfo.trim()) {
-      setEditError("O campo Informações é obrigatório.");
+      setEditError('O campo Informações é obrigatório.');
       return;
     }
     if (isNaN(weightNum)) {
-      setEditError("Peso inválido.");
+      setEditError('Peso inválido.');
       return;
     }
 
@@ -94,22 +105,22 @@ export default function ListagemAtivos() {
 
     try {
       const res = await fetch(`/api/assets/${editingAsset.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ info: editInfo.trim(), weight: weightNum }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setEditError(data.error ?? "Erro ao salvar.");
+        setEditError(data.error ?? 'Erro ao salvar.');
         return;
       }
 
       setEditingAsset(null);
       fetchAssets(selectedType);
     } catch {
-      setEditError("Falha na comunicação com o servidor.");
+      setEditError('Falha na comunicação com o servidor.');
     } finally {
       setEditLoading(false);
     }
@@ -122,83 +133,69 @@ export default function ListagemAtivos() {
 
     try {
       const res = await fetch(`/api/assets/${deletingAsset.id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setDeleteError(data.error ?? "Erro ao excluir.");
+        setDeleteError(data.error ?? 'Erro ao excluir.');
         return;
       }
 
       setDeletingAsset(null);
       fetchAssets(selectedType);
     } catch {
-      setDeleteError("Falha na comunicação com o servidor.");
+      setDeleteError('Falha na comunicação com o servidor.');
     } finally {
       setDeleteLoading(false);
     }
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="w-full max-w-5xl">
+    <main className="flex-1 flex flex-col items-center px-6 py-16">
+      <div className="w-full max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Listagem de Ativos</h1>
+          <H1 className="text-display-sm">Listagem de Ativos</H1>
         </div>
 
-        {/* Filter */}
-        <div className="mb-8">
-          <label
-            htmlFor="type-filter"
-            className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5"
-          >
+        <div className="mb-6">
+          <Caption as="span" className="text-caption-uppercase uppercase text-muted block mb-2">
             Tipo de Ativo
-          </label>
-          <div className="flex items-center gap-3">
-            <select
-              id="type-filter"
+          </Caption>
+          <div className="flex items-center gap-3 flex-wrap">
+            <CategoryTab
+              options={tabOptions}
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              disabled={loading}
-              className="select-standard disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {categories.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            {loading && (
-              <span className="text-sm text-gray-400">Carregando...</span>
-            )}
+              onChange={setSelectedType}
+              size="md"
+            />
+            {loading && <span className="text-body-sm text-muted">Carregando...</span>}
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-red-300 text-sm">
-            {error}
+          <div className="mb-6">
+            <StatusBanner tone="error">{error}</StatusBanner>
           </div>
         )}
 
-        {/* Results */}
         {hasSearched && !loading && (
           <>
             {assets.length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
+              <div className="text-center py-16 text-muted-soft">
                 Nenhum ativo cadastrado.
               </div>
             ) : (
               <>
-                <p className="text-sm text-gray-400 mb-4">
-                  {assets.length} ativo{assets.length !== 1 ? "s" : ""} encontrado
-                  {assets.length !== 1 ? "s" : ""}
+                <p className="text-body-sm text-muted mb-4">
+                  {assets.length} ativo{assets.length !== 1 ? 's' : ''} encontrado
+                  {assets.length !== 1 ? 's' : ''}
                 </p>
-                <div className="rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden">
-                  <table className="w-full text-sm">
+                <Card variant="feature" padding="none" className="overflow-x-auto">
+                  <table className="w-full text-body-sm min-w-max">
                     <thead>
-                      <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
+                      <tr className="border-b border-hairline text-caption-uppercase uppercase text-muted">
                         <th className="px-4 py-3 text-left">Código</th>
                         <th className="px-4 py-3 text-left">Informações</th>
                         <th className="px-4 py-3 text-left">Categoria</th>
@@ -207,172 +204,111 @@ export default function ListagemAtivos() {
                         <th className="px-4 py-3 text-center">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-hairline">
                       {assets.map((asset) => (
-                        <tr key={asset.id} className="hover:bg-gray-800/50 transition-colors">
-                          <td className="px-4 py-3 font-mono font-semibold text-white">
-                            {asset.code}
-                          </td>
-                          <td className="px-4 py-3 text-gray-300 max-w-xs">{asset.info}</td>
-                          <td className="px-4 py-3 text-gray-400">
-                            {categoryMap[asset.type] ?? asset.type}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-300">
-                            {Number(asset.weight).toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-300">
-                            {asset.weightPercent.toFixed(2)}%
-                          </td>
+                        <tr key={asset.id} className="hover:bg-surface-soft transition-colors">
+                          <td className="px-4 py-3 font-mono font-semibold text-ink">{asset.code}</td>
+                          <td className="px-4 py-3 text-body max-w-xs">{asset.info}</td>
+                          <td className="px-4 py-3 text-muted">{categoryMap[asset.type] ?? asset.type}</td>
+                          <td className="px-4 py-3 text-right text-body">{Number(asset.weight).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right text-body">{asset.weightPercent.toFixed(2)}%</td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => openEdit(asset)}
-                                className="px-3 py-1 rounded text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
-                              >
+                              <Button size="sm" variant="secondary" onClick={() => openEdit(asset)}>
                                 Editar
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDeleteError(null);
-                                  setDeletingAsset(asset);
-                                }}
-                                className="px-3 py-1 rounded text-xs font-medium bg-red-900/40 hover:bg-red-900/70 text-red-400 hover:text-red-300 transition-colors"
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => { setDeleteError(null); setDeletingAsset(asset); }}
+                                className="!text-error hover:!border-error"
                               >
                                 Excluir
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </Card>
               </>
             )}
           </>
         )}
       </div>
 
-      {/* Modal: Editar */}
-      {editingAsset && (
-        <Modal title={`Editar Ativo — ${editingAsset.code}`} onClose={() => setEditingAsset(null)}>
+      <Modal
+        open={editingAsset !== null}
+        onClose={() => setEditingAsset(null)}
+        title={editingAsset ? `Editar Ativo — ${editingAsset.code}` : ''}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditingAsset(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditSave} disabled={editLoading}>
+              {editLoading ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </>
+        }
+      >
+        {editingAsset && (
           <div className="space-y-4">
-            <Field label="Código">
-              <p className="font-mono text-white">{editingAsset.code}</p>
-            </Field>
-            <Field label="Tipo">
-              <p className="text-gray-400">{categoryMap[editingAsset.type] ?? editingAsset.type}</p>
-            </Field>
-            <Field label="Informações">
-              <input
-                type="text"
-                value={editInfo}
-                onChange={(e) => setEditInfo(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm"
-              />
-            </Field>
-            <Field label="Peso">
-              <input
-                type="text"
-                value={editWeight}
-                onChange={(e) => setEditWeight(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm"
-              />
-            </Field>
-            {editError && (
-              <p className="text-red-400 text-sm">{editError}</p>
-            )}
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                onClick={() => setEditingAsset(null)}
-                className="px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleEditSave}
-                disabled={editLoading}
-                className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 text-sm font-semibold transition-colors"
-              >
-                {editLoading ? "Salvando..." : "Salvar"}
-              </button>
+            <div>
+              <Caption as="span" className="text-caption-uppercase uppercase text-muted block mb-1.5">
+                Código
+              </Caption>
+              <Mono className="text-ink">{editingAsset.code}</Mono>
             </div>
+            <div>
+              <Caption as="span" className="text-caption-uppercase uppercase text-muted block mb-1.5">
+                Tipo
+              </Caption>
+              <p className="text-muted text-body-sm">{categoryMap[editingAsset.type] ?? editingAsset.type}</p>
+            </div>
+            <TextInput
+              label="Informações"
+              value={editInfo}
+              onChange={(e) => setEditInfo(e.target.value)}
+            />
+            <TextInput
+              label="Peso"
+              value={editWeight}
+              onChange={(e) => setEditWeight(e.target.value)}
+            />
+            {editError && <StatusBanner tone="error">{editError}</StatusBanner>}
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
 
-      {/* Modal: Excluir */}
-      {deletingAsset && (
-        <Modal title="Confirmar Exclusão" onClose={() => setDeletingAsset(null)}>
+      <Modal
+        open={deletingAsset !== null}
+        onClose={() => setDeletingAsset(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeletingAsset(null)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading}>
+              {deleteLoading ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </>
+        }
+      >
+        {deletingAsset && (
           <div className="space-y-4">
-            <p className="text-gray-300 text-sm">
-              Deseja excluir o ativo{" "}
-              <span className="font-mono font-semibold text-white">
-                {deletingAsset.code}
-              </span>
-              ? Esta ação não pode ser desfeita.
+            <p className="text-body text-body-sm">
+              Deseja excluir o ativo{' '}
+              <Mono className="text-ink font-semibold">{deletingAsset.code}</Mono>? Esta ação não pode ser desfeita.
             </p>
-            {deleteError && (
-              <p className="text-red-400 text-sm">{deleteError}</p>
-            )}
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                onClick={() => setDeletingAsset(null)}
-                className="px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
-              >
-                {deleteLoading ? "Excluindo..." : "Excluir"}
-              </button>
-            </div>
+            {deleteError && <StatusBanner tone="error">{deleteError}</StatusBanner>}
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </main>
-  );
-}
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-md rounded-2xl bg-gray-900 border border-gray-800 p-6 shadow-xl">
-        <h3 className="text-lg font-bold text-white mb-4">{title}</h3>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
