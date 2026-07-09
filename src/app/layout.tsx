@@ -1,17 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant_Garamond, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { Footer } from "@/components/ui/Footer";
 import { checkSupabaseConnection } from "@/lib/supabase";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["500"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,22 +39,23 @@ export default async function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body className="min-h-screen flex flex-col bg-gray-950 text-white">
+      <body className="min-h-screen flex flex-col">
         {dbError ? (
           <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
-            <div className="max-w-lg w-full rounded-2xl bg-gray-900 border border-red-800 px-8 py-10">
-              <h1 className="text-2xl font-bold text-red-400 mb-3">
+            <div className="max-w-lg w-full rounded-lg bg-surface-card border border-error px-8 py-10">
+              <h1 className="font-display text-title-lg text-error mb-3">
                 Erro de Conexão com o Banco de Dados
               </h1>
-              <p className="text-gray-400 text-sm leading-relaxed">{dbError}</p>
+              <p className="text-body text-body text-body-sm leading-relaxed">{dbError}</p>
             </div>
           </div>
         ) : (
           <>
             <Navbar />
             <div className="flex-1 flex flex-col">{children}</div>
+            <Footer />
           </>
         )}
       </body>

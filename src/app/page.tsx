@@ -2,6 +2,11 @@
 
 import { useState, FormEvent } from "react";
 import { BrapiResult } from "@/types/brapi";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StatusBanner } from "@/components/ui/StatusBanner";
+import { TextInput } from "@/components/ui/TextInput";
+import { H1, Lead, Caption, Mono } from "@/components/ui/typography";
 
 function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -55,114 +60,97 @@ export default function Home() {
   const isPositive = result ? result.regularMarketChangePercent >= 0 : true;
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="w-full max-w-xl">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-white">
-            Cotação <span className="text-emerald-400">IBOV</span>
-          </h1>
-          <p className="mt-2 text-gray-400 text-sm">
+    <main className="flex-1 flex flex-col items-center px-6 py-16">
+      <div className="w-full max-w-2xl">
+        <div className="mb-12 text-center">
+          <H1 className="text-display-lg">
+            Cotação <span className="text-primary">IBOV</span>
+          </H1>
+          <Lead className="mt-3 text-muted">
             Consulte a cotação atual de ações e FIIs da B3
-          </p>
+          </Lead>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
           <div className="flex-1">
-            <label
-              htmlFor="code"
-              className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5"
-            >
-              Ação / FII
-            </label>
-            <input
+            <TextInput
               id="code"
               name="code"
-              type="text"
+              label="Ação / FII"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="Ex: PETR4, ABEV3, XPLG11"
               autoComplete="off"
-              className="w-full rounded-lg bg-gray-800 border border-gray-700 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
             />
           </div>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={loading || !code.trim()}
-              className="rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed px-6 py-3 font-semibold text-gray-950 transition-colors"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Buscando
-                </span>
-              ) : (
-                "Buscar"
-              )}
-            </button>
-          </div>
+          <Button type="submit" disabled={loading || !code.trim()} className="sm:h-10">
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Buscando
+              </span>
+            ) : (
+              "Buscar"
+            )}
+          </Button>
         </form>
 
         {error && (
-          <div className="mt-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-red-300 text-sm">
-            {error}
+          <div className="mt-6">
+            <StatusBanner tone="error">{error}</StatusBanner>
           </div>
         )}
 
         {result && (
-          <div className="mt-8 rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-800 flex items-center justify-between">
+          <Card variant="feature" padding="none" className="mt-10">
+            <div className="px-8 py-6 border-b border-hairline flex items-start justify-between gap-6 flex-wrap">
               <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <Caption as="span" className="text-caption-uppercase uppercase text-muted">
                   {result.symbol}
-                </span>
-                <h2 className="text-lg font-bold text-white mt-0.5">
+                </Caption>
+                <h2 className="font-display text-title-lg text-ink mt-1">
                   {result.shortName || result.longName}
                 </h2>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-white">
+                <p className="font-display text-display-sm text-ink">
                   {formatCurrency(result.regularMarketPrice)}
                 </p>
-                <p
-                  className={`text-sm font-semibold mt-0.5 ${
-                    isPositive ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
+                <p className={`text-body-sm font-medium mt-1 ${isPositive ? "text-success" : "text-error"}`}>
                   {formatCurrency(result.regularMarketChange)}{" "}
                   ({formatPercent(result.regularMarketChangePercent)})
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-gray-800">
-              <div className="grid grid-rows-2 divide-y divide-gray-800">
+            <div className="grid grid-cols-2 divide-x divide-hairline">
+              <div className="grid grid-rows-2 divide-y divide-hairline">
                 <Stat label="Abertura" value={formatCurrency(result.regularMarketOpen)} />
                 <Stat label="Fechamento Ant." value={formatCurrency(result.regularMarketPreviousClose)} />
               </div>
-              <div className="grid grid-rows-2 divide-y divide-gray-800">
+              <div className="grid grid-rows-2 divide-y divide-hairline">
                 <Stat label="Máxima do Dia" value={formatCurrency(result.regularMarketDayHigh)} />
                 <Stat label="Mínima do Dia" value={formatCurrency(result.regularMarketDayLow)} />
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-800 flex items-center justify-between text-sm text-gray-400">
-              <span>Volume</span>
-              <span className="text-white font-medium">{formatNumber(result.regularMarketVolume)}</span>
+            <div className="px-8 py-4 border-t border-hairline flex items-center justify-between text-body-sm">
+              <span className="text-muted">Volume</span>
+              <Mono className="text-ink font-semibold">{formatNumber(result.regularMarketVolume)}</Mono>
             </div>
 
             {(result.fiftyTwoWeekHigh || result.fiftyTwoWeekLow) && (
-              <div className="px-6 py-4 border-t border-gray-800 flex items-center justify-between text-sm text-gray-400">
-                <span>52 semanas</span>
-                <span className="text-white font-medium">
+              <div className="px-8 py-4 border-t border-hairline flex items-center justify-between text-body-sm">
+                <span className="text-muted">52 semanas</span>
+                <Mono className="text-ink font-semibold">
                   {formatCurrency(result.fiftyTwoWeekLow)} — {formatCurrency(result.fiftyTwoWeekHigh)}
-                </span>
+                </Mono>
               </div>
             )}
-          </div>
+          </Card>
         )}
       </div>
     </main>
@@ -171,9 +159,9 @@ export default function Home() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-6 py-4 flex flex-col gap-1">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-sm font-semibold text-white">{value}</span>
+    <div className="px-8 py-4 flex flex-col gap-1">
+      <span className="text-caption text-muted-soft">{label}</span>
+      <Mono className="text-ink font-semibold">{value}</Mono>
     </div>
   );
 }

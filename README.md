@@ -2,6 +2,15 @@
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Layout Version
+
+1.1 - Layout like Claude Code page.
+
+### Claude Inspired Design:
+
+[https://github.com/VoltAgent/awesome-design-md/blob/main/design-md/claude/DESIGN.md](https://github.com/VoltAgent/awesome-design-md/blob/main/design-md/claude/DESIGN.md)
+[https://getdesign.md/claude/design-md](https://getdesign.md/claude/design-md)
+
 ## Getting Started
 
 First, run the development server:
