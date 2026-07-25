@@ -14,6 +14,7 @@ import { fetchQuoteForTicker } from "../src/lib/brapi-service";
 import type { BrapiResult } from "../src/types/brapi";
 import type { CotacaoSyncResult, CotacaoUpsertInput } from "../src/types/cotacao";
 import { parseJobId, updateJobProgress, finishJob } from "./job-progress";
+import { isBrapiNotFoundError } from "./sync-cotacoes-error";
 
 type AtivoCodeRow = {
   code: string;
@@ -84,9 +85,13 @@ async function main(): Promise<CotacaoSyncResult> {
       ok++;
       console.log(`[${code}] OK — ${value} (${date_update})`);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.error(`[${code}]`, msg);
-      fail++;
+      if (isBrapiNotFoundError(e)) {
+        console.log(`[${code}] não encontrado.`);
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error(`[${code}]`, msg);
+        fail++;
+      }
     }
 
     if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);

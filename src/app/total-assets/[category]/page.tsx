@@ -10,7 +10,6 @@ import {
   type TotalAssetCategory,
 } from '@/lib/total-asset-categories';
 import type { TotalAssetWithInfo } from '@/types/total-asset';
-import { Card } from '@/components/ui/Card';
 import { H1, Lead, Mono } from '@/components/ui/typography';
 
 function formatCurrency(value: number): string {
@@ -107,7 +106,7 @@ export default function TotalAssetsByCategoryPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-16">
-      <div className="w-full max-w-7xl">
+      <div className="w-full">
         <div className="mb-8">
           <H1 className="text-display-sm">{title}</H1>
           <Lead className="mt-2 text-muted text-body-md">
@@ -138,10 +137,10 @@ export default function TotalAssetsByCategoryPage() {
                   {totals.length} ativo{totals.length !== 1 ? 's' : ''} listado
                   {totals.length !== 1 ? 's' : ''}
                 </p>
-                <Card variant="feature" padding="none" className="overflow-x-auto">
-                  <table className="w-full text-body-sm min-w-max">
+                <div>
+                  <table className="w-full text-body-sm min-w-max text-ink bg-surface-card border border-hairline rounded-lg overflow-hidden">
                     <thead>
-                      <tr className="border-b border-hairline text-caption-uppercase uppercase text-muted">
+                      <tr className="bg-surface-cream-strong border-b border-hairline text-caption-uppercase uppercase text-muted">
                         <th className="px-4 py-3 text-left">Código</th>
                         <th className="px-4 py-3 text-left">Categoria</th>
                         <th className="px-4 py-3 text-left">Informações</th>
@@ -191,7 +190,7 @@ export default function TotalAssetsByCategoryPage() {
                       ))}
                     </tbody>
                   </table>
-                </Card>
+                </div>
               </>
             )}
           </>
