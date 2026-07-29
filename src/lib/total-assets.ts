@@ -1,6 +1,6 @@
-import type { TotalAsset } from "@/types/total-asset";
+import type { TotalAsset, TotalAssetWithInfo } from "@/types/total-asset";
 
-export type { TotalAsset };
+export type { TotalAsset, TotalAssetWithInfo };
 
 export type TotalCategoryTotals = {
   totalAportado: number;
@@ -46,7 +46,7 @@ export function calculateCategoryPerformance(
 
 export type SortDirection = "asc" | "desc";
 
-export type SortableField = keyof TotalAsset;
+export type SortableField = keyof TotalAssetWithInfo;
 
 function compareValues(a: unknown, b: unknown): number {
   const aNull = a === null || a === undefined;
@@ -60,7 +60,7 @@ function compareValues(a: unknown, b: unknown): number {
   return aStr.localeCompare(bStr, "pt-BR", { numeric: true });
 }
 
-export function sortTotalAssets<T extends TotalAsset>(
+export function sortTotalAssets<T extends TotalAssetWithInfo>(
   rows: readonly T[],
   field: SortableField,
   direction: SortDirection,

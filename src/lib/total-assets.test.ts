@@ -4,10 +4,10 @@ import {
   calculateCategoryPerformance,
   normalizeTotalCategoryTotals,
   sortTotalAssets,
-  type TotalAsset,
+  type TotalAssetWithInfo,
 } from "./total-assets";
 
-const baseAsset: TotalAsset = {
+const baseAsset: TotalAssetWithInfo = {
   code: "AAA",
   category_name: "acao",
   percentual_objetivo: 0,
@@ -24,6 +24,8 @@ const baseAsset: TotalAsset = {
   percentual_falta: 0,
   primeiro_aporte: null,
   ultimo_aporte: null,
+  info: "",
+  weight: 0,
 };
 
 test("normalizeTotalCategoryTotals converte strings numéricas e mantém null como zeros", () => {
@@ -75,7 +77,7 @@ test("calculateCategoryPerformance: aporte zero evita NaN", () => {
 });
 
 test("sortTotalAssets ASC por código (texto)", () => {
-  const rows: TotalAsset[] = [
+  const rows: TotalAssetWithInfo[] = [
     { ...baseAsset, code: "BBB" },
     { ...baseAsset, code: "AAA" },
     { ...baseAsset, code: "CCC" },
@@ -85,7 +87,7 @@ test("sortTotalAssets ASC por código (texto)", () => {
 });
 
 test("sortTotalAssets DESC por total_aportado (número)", () => {
-  const rows: TotalAsset[] = [
+  const rows: TotalAssetWithInfo[] = [
     { ...baseAsset, code: "A", total_aportado: 10 },
     { ...baseAsset, code: "B", total_aportado: 30 },
     { ...baseAsset, code: "C", total_aportado: 20 },
@@ -95,7 +97,7 @@ test("sortTotalAssets DESC por total_aportado (número)", () => {
 });
 
 test("sortTotalAssets coloca nulos por último em ASC e DESC para datas", () => {
-  const rows: TotalAsset[] = [
+  const rows: TotalAssetWithInfo[] = [
     { ...baseAsset, code: "A", primeiro_aporte: null },
     { ...baseAsset, code: "B", primeiro_aporte: "2024-01-01" },
     { ...baseAsset, code: "C", primeiro_aporte: "2025-05-05" },
@@ -105,7 +107,7 @@ test("sortTotalAssets coloca nulos por último em ASC e DESC para datas", () => 
 });
 
 test("sortTotalAssets não muta o array original", () => {
-  const rows: TotalAsset[] = [{ ...baseAsset, code: "B" }, { ...baseAsset, code: "A" }];
+  const rows: TotalAssetWithInfo[] = [{ ...baseAsset, code: "B" }, { ...baseAsset, code: "A" }];
   const original = [...rows];
   sortTotalAssets(rows, "code", "asc");
   assert.deepEqual(rows, original);

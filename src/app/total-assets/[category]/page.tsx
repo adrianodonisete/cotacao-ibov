@@ -1,15 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Category } from '@/types/category';
 import {
   isTotalAssetCategory,
   TOTAL_ASSET_CATEGORIES,
+  TOTAL_ASSET_CATEGORY_SUBTITLES,
   TOTAL_ASSET_CATEGORY_TITLES,
   type TotalAssetCategory,
 } from '@/lib/total-asset-categories';
-import type { TotalAssetWithInfo } from '@/types/total-asset';
+import {
+  calculateCategoryPerformance,
+  sortTotalAssets,
+  type SortDirection,
+  type SortableField,
+} from '@/lib/total-assets';
+import type {
+  TotalAssetsApiResponse,
+  TotalCategoryTotals,
+  TotalAssetWithInfo,
+} from '@/types/total-asset';
 import { H1, Lead, Mono } from '@/components/ui/typography';
 
 function formatCurrency(value: number): string {
@@ -24,7 +35,10 @@ function formatCurrencyBRL(value: number): string {
 }
 
 function formatPercent(value: number): string {
-  return `${Number(value).toFixed(2)}%`;
+  return `${Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
 }
 
 function formatQtd(value: number): string {
@@ -39,6 +53,145 @@ function formatDate(dateStr: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+type SortState = { field: SortableField; direction: SortDirection };
+
+type ColumnDef = {
+  field: SortableField;
+  label: string;
+  align: 'left' | 'right' | 'center';
+  format: (row: TotalAssetWithInfo, categoryLabelMap: Record<string, string>) => string;
+  valueClass: string;
+};
+
+const COLUMNS: ColumnDef[] = [
+  {
+    field: 'code',
+    label: 'Código',
+    align: 'left',
+    format: (row) => row.code,
+    valueClass: 'font-mono font-semibold text-ink',
+  },
+  {
+    field: 'category_name',
+    label: 'Categoria',
+    align: 'left',
+    format: (row, map) => map[row.category_name] ?? row.category_name,
+    valueClass: 'text-muted',
+  },
+  {
+    field: 'info',
+    label: 'Informações',
+    align: 'left',
+    format: (row) => row.info || '—',
+    valueClass: 'text-body max-w-xs truncate',
+  },
+  {
+    field: 'weight',
+    label: 'Peso',
+    align: 'right',
+    format: (row) => Number(row.weight).toFixed(2),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'percentual_objetivo',
+    label: '% Objetivo',
+    align: 'right',
+    format: (row) => formatPercent(row.percentual_objetivo),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'montante_objetivo',
+    label: 'R$ Objetivo',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.montante_objetivo),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'total_qtd',
+    label: 'Quantidade',
+    align: 'right',
+    format: (row) => formatQtd(row.total_qtd),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'cotacao',
+    label: 'Cotação',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.cotacao),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'total_aportado',
+    label: 'R$ Aportado',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.total_aportado),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'percentual_aportado',
+    label: '% Aportado',
+    align: 'right',
+    format: (row) => formatPercent(row.percentual_aportado),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'montante_atual',
+    label: 'R$ Montante Atual',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.montante_atual),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'percentual_montante_atual',
+    label: '% Montante Atual',
+    align: 'right',
+    format: (row) => formatPercent(row.percentual_montante_atual),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'lucro',
+    label: 'R$ Lucro',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.lucro),
+    valueClass: 'font-medium',
+  },
+  {
+    field: 'percentual_lucro',
+    label: '% Lucro',
+    align: 'right',
+    format: (row) => formatPercent(row.percentual_lucro),
+    valueClass: '',
+  },
+  {
+    field: 'montante_falta',
+    label: 'R$ Montante Falta',
+    align: 'right',
+    format: (row) => formatCurrencyBRL(row.montante_falta),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'percentual_falta',
+    label: '% Montante Falta',
+    align: 'right',
+    format: (row) => formatPercent(row.percentual_falta),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'primeiro_aporte',
+    label: 'Primeiro Aporte',
+    align: 'center',
+    format: (row) => formatDate(row.primeiro_aporte),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'ultimo_aporte',
+    label: 'Último Aporte',
+    align: 'center',
+    format: (row) => formatDate(row.ultimo_aporte),
+    valueClass: 'text-body',
+  },
+];
+
 export default function TotalAssetsByCategoryPage() {
   const params = useParams<{ category: string }>();
   const category = params?.category ?? '';
@@ -48,22 +201,32 @@ export default function TotalAssetsByCategoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [categoryTotals, setCategoryTotals] = useState<TotalCategoryTotals | null>(
+    null,
+  );
+  const [sort, setSort] = useState<SortState>({
+    field: 'code',
+    direction: 'asc',
+  });
 
   const valid = isTotalAssetCategory(category);
   const title = valid ? TOTAL_ASSET_CATEGORY_TITLES[category] : 'Categoria inválida';
+  const subtitle = valid ? TOTAL_ASSET_CATEGORY_SUBTITLES[category] : '';
 
   const fetchTotals = useCallback(async (cat: TotalAssetCategory) => {
     setLoading(true);
     setError(null);
+    setCategoryTotals(null);
     try {
       const res = await fetch(`/api/total-assets?category=${encodeURIComponent(cat)}`);
-      const data = await res.json();
+      const data: TotalAssetsApiResponse = await res.json();
       if (!res.ok) {
         setError(data.error ?? 'Erro ao buscar totais.');
         setTotals([]);
         return;
       }
       setTotals(data.totals ?? []);
+      if (data.categoryTotals) setCategoryTotals(data.categoryTotals);
       setHasSearched(true);
     } catch {
       setError('Falha na comunicação com o servidor.');
@@ -79,6 +242,10 @@ export default function TotalAssetsByCategoryPage() {
   }, [category, valid, fetchTotals]);
 
   useEffect(() => {
+    setSort({ field: 'code', direction: 'asc' });
+  }, [category]);
+
+  useEffect(() => {
     fetch('/api/categories')
       .then((r) => r.json())
       .then((d) => {
@@ -88,7 +255,12 @@ export default function TotalAssetsByCategoryPage() {
   }, []);
 
   const categoryLabelMap: Record<string, string> = Object.fromEntries(
-    categories.map((c) => [c.name, c.label])
+    categories.map((c) => [c.name, c.label]),
+  );
+
+  const sortedTotals = useMemo(
+    () => sortTotalAssets(totals, sort.field, sort.direction),
+    [totals, sort],
   );
 
   if (!valid) {
@@ -109,11 +281,10 @@ export default function TotalAssetsByCategoryPage() {
       <div className="w-full">
         <div className="mb-8">
           <H1 className="text-display-sm">{title}</H1>
-          <Lead className="mt-2 text-muted text-body-md">
-            Categoria:{' '}
-            <span className="text-primary">{categoryLabelMap[category] ?? category}</span>
-            {' · '}Fonte: <span className="text-body">total_assets_cache</span>
-          </Lead>
+          <p className="mt-2 text-title-md text-body-strong">{subtitle}</p>
+          {categoryTotals && (
+            <SummaryLine totals={categoryTotals} />
+          )}
         </div>
 
         {error && (
@@ -137,55 +308,70 @@ export default function TotalAssetsByCategoryPage() {
                   {totals.length} ativo{totals.length !== 1 ? 's' : ''} listado
                   {totals.length !== 1 ? 's' : ''}
                 </p>
-                <div>
+                <div className="overflow-x-auto">
                   <table className="w-full text-body-sm min-w-max text-ink bg-surface-card border border-hairline rounded-lg overflow-hidden">
                     <thead>
                       <tr className="bg-surface-cream-strong border-b border-hairline text-caption-uppercase uppercase text-muted">
-                        <th className="px-4 py-3 text-left">Código</th>
-                        <th className="px-4 py-3 text-left">Categoria</th>
-                        <th className="px-4 py-3 text-left">Informações</th>
-                        <th className="px-4 py-3 text-right">Peso</th>
-                        <th className="px-4 py-3 text-right">% Objetivo</th>
-                        <th className="px-4 py-3 text-right">R$ Objetivo</th>
-                        <th className="px-4 py-3 text-right">Quantidade</th>
-                        <th className="px-4 py-3 text-right">Cotação</th>
-                        <th className="px-4 py-3 text-right">R$ Aportado</th>
-                        <th className="px-4 py-3 text-right">% Aportado</th>
-                        <th className="px-4 py-3 text-right">R$ Montante Atual</th>
-                        <th className="px-4 py-3 text-right">% Montante Atual</th>
-                        <th className="px-4 py-3 text-right">R$ Lucro</th>
-                        <th className="px-4 py-3 text-right">% Lucro</th>
-                        <th className="px-4 py-3 text-right">R$ Montante Falta</th>
-                        <th className="px-4 py-3 text-right">% Montante Falta</th>
-                        <th className="px-4 py-3 text-center">Primeiro Aporte</th>
-                        <th className="px-4 py-3 text-center">Último Aporte</th>
+                        {COLUMNS.map((col) => {
+                          const isActive = sort.field === col.field;
+                          const arrow = isActive
+                            ? sort.direction === 'asc'
+                              ? '↑'
+                              : '↓'
+                            : '↕';
+                          const ariaSort: 'ascending' | 'descending' | 'none' = isActive
+                            ? sort.direction === 'asc'
+                              ? 'ascending'
+                              : 'descending'
+                            : 'none';
+                          return (
+                            <th
+                              key={col.field}
+                              scope="col"
+                              aria-sort={ariaSort}
+                              className={`px-4 py-3 text-${col.align}`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSort((prev) => ({
+                                    field: col.field,
+                                    direction:
+                                      prev.field === col.field && prev.direction === 'asc'
+                                        ? 'desc'
+                                        : 'asc',
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-1 uppercase tracking-wider text-caption-uppercase ${
+                                  isActive
+                                    ? 'text-ink'
+                                    : 'text-muted hover:text-ink'
+                                } focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm`}
+                              >
+                                <span>{col.label}</span>
+                                <span aria-hidden className={isActive ? '' : 'opacity-60'}>
+                                  {arrow}
+                                </span>
+                              </button>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-hairline">
-                      {totals.map((t) => (
-                        <tr key={t.code} className="hover:bg-surface-soft transition-colors">
-                          <td className="px-4 py-3 font-mono font-semibold text-ink">{t.code}</td>
-                          <td className="px-4 py-3 text-muted">{categoryLabelMap[t.category_name] ?? t.category_name}</td>
-                          <td className="px-4 py-3 text-body max-w-xs truncate">{t.info || '—'}</td>
-                          <td className="px-4 py-3 text-right text-body">{Number(t.weight).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatPercent(t.percentual_objetivo)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatCurrencyBRL(t.montante_objetivo)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatQtd(t.total_qtd)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatCurrencyBRL(t.cotacao)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatCurrencyBRL(t.total_aportado)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatPercent(t.percentual_aportado)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatCurrencyBRL(t.montante_atual)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatPercent(t.percentual_montante_atual)}</td>
-                          <td className={`px-4 py-3 text-right font-medium ${t.lucro >= 0 ? 'text-success' : 'text-error'}`}>
-                            {formatCurrencyBRL(t.lucro)}
-                          </td>
-                          <td className={`px-4 py-3 text-right ${t.percentual_lucro >= 0 ? 'text-success' : 'text-error'}`}>
-                            {formatPercent(t.percentual_lucro)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-body">{formatCurrencyBRL(t.montante_falta)}</td>
-                          <td className="px-4 py-3 text-right text-body">{formatPercent(t.percentual_falta)}</td>
-                          <td className="px-4 py-3 text-center text-body">{formatDate(t.primeiro_aporte)}</td>
-                          <td className="px-4 py-3 text-center text-body">{formatDate(t.ultimo_aporte)}</td>
+                      {sortedTotals.map((row) => (
+                        <tr key={row.code} className="hover:bg-surface-soft transition-colors">
+                          {COLUMNS.map((col) => {
+                            const cellClass = `${col.valueClass} ${cellColorClass(col.field, row)}`.trim();
+                            return (
+                              <td
+                                key={col.field}
+                                className={`px-4 py-3 text-${col.align} ${cellClass}`}
+                              >
+                                {col.format(row, categoryLabelMap)}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
@@ -198,4 +384,46 @@ export default function TotalAssetsByCategoryPage() {
       </div>
     </main>
   );
+}
+
+function SummaryLine({ totals }: { totals: TotalCategoryTotals }) {
+  const performance = calculateCategoryPerformance(totals);
+  const profitClass = performance.lucro >= 0 ? 'text-success' : 'text-error';
+  const separator = (
+    <span className="mx-3 text-muted-soft" aria-hidden>
+      ·
+    </span>
+  );
+  return (
+    <p className="mt-3 text-body-sm text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span>
+        Total Aportado:{' '}
+        <span className="text-ink font-medium">{formatCurrencyBRL(totals.totalAportado)}</span>
+      </span>
+      {separator}
+      <span>
+        Total Atual:{' '}
+        <span className="text-ink font-medium">{formatCurrencyBRL(totals.totalAtual)}</span>
+      </span>
+      {separator}
+      <span>
+        Lucro: <span className={`font-medium ${profitClass}`}>{formatCurrencyBRL(performance.lucro)}</span>
+      </span>
+      {separator}
+      <span>
+        % Lucro: <span className={`font-medium ${profitClass}`}>{formatPercent(performance.percentualLucro)}</span>
+      </span>
+      {separator}
+      <span>
+        Total Peso: <span className="text-ink font-medium">{totals.totalPeso.toFixed(2)}</span>
+      </span>
+    </p>
+  );
+}
+
+function cellColorClass(field: SortableField, row: TotalAssetWithInfo): string {
+  if (field === 'lucro') return row.lucro >= 0 ? 'text-success' : 'text-error';
+  if (field === 'percentual_lucro')
+    return row.percentual_lucro >= 0 ? 'text-success' : 'text-error';
+  return '';
 }
