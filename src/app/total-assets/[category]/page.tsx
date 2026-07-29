@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Category } from '@/types/category';
 import {
   isTotalAssetCategory,
   TOTAL_ASSET_CATEGORIES,
-  TOTAL_ASSET_CATEGORY_SUBTITLES,
   TOTAL_ASSET_CATEGORY_TITLES,
   type TotalAssetCategory,
 } from '@/lib/total-asset-categories';
@@ -59,7 +57,7 @@ type ColumnDef = {
   field: SortableField;
   label: string;
   align: 'left' | 'right' | 'center';
-  format: (row: TotalAssetWithInfo, categoryLabelMap: Record<string, string>) => string;
+  format: (row: TotalAssetWithInfo) => string;
   valueClass: string;
 };
 
@@ -70,13 +68,6 @@ const COLUMNS: ColumnDef[] = [
     align: 'left',
     format: (row) => row.code,
     valueClass: 'font-mono font-semibold text-ink',
-  },
-  {
-    field: 'category_name',
-    label: 'Categoria',
-    align: 'left',
-    format: (row, map) => map[row.category_name] ?? row.category_name,
-    valueClass: 'text-muted',
   },
   {
     field: 'info',
@@ -197,7 +188,6 @@ export default function TotalAssetsByCategoryPage() {
   const category = params?.category ?? '';
 
   const [totals, setTotals] = useState<TotalAssetWithInfo[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
@@ -211,7 +201,6 @@ export default function TotalAssetsByCategoryPage() {
 
   const valid = isTotalAssetCategory(category);
   const title = valid ? TOTAL_ASSET_CATEGORY_TITLES[category] : 'Categoria inválida';
-  const subtitle = valid ? TOTAL_ASSET_CATEGORY_SUBTITLES[category] : '';
 
   const fetchTotals = useCallback(async (cat: TotalAssetCategory) => {
     setLoading(true);
@@ -245,19 +234,6 @@ export default function TotalAssetsByCategoryPage() {
     setSort({ field: 'code', direction: 'asc' });
   }, [category]);
 
-  useEffect(() => {
-    fetch('/api/categories')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.categories) setCategories(d.categories);
-      })
-      .catch(() => {});
-  }, []);
-
-  const categoryLabelMap: Record<string, string> = Object.fromEntries(
-    categories.map((c) => [c.name, c.label]),
-  );
-
   const sortedTotals = useMemo(
     () => sortTotalAssets(totals, sort.field, sort.direction),
     [totals, sort],
@@ -281,7 +257,6 @@ export default function TotalAssetsByCategoryPage() {
       <div className="w-full">
         <div className="mb-8">
           <H1 className="text-display-sm">{title}</H1>
-          <p className="mt-2 text-title-md text-body-strong">{subtitle}</p>
           {categoryTotals && (
             <SummaryLine totals={categoryTotals} />
           )}
@@ -368,7 +343,7 @@ export default function TotalAssetsByCategoryPage() {
                                 key={col.field}
                                 className={`px-4 py-3 text-${col.align} ${cellClass}`}
                               >
-                                {col.format(row, categoryLabelMap)}
+                                {col.format(row)}
                               </td>
                             );
                           })}

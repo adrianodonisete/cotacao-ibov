@@ -10,11 +10,6 @@ export const TOTAL_ASSET_CATEGORY_TITLES: Record<TotalAssetCategory, string> = {
   fii: "Total por FIIs",
 };
 
-export const TOTAL_ASSET_CATEGORY_SUBTITLES: Record<TotalAssetCategory, string> = {
-  acao: "Totais Categoria Ações",
-  fii: "Totais Categoria FIIs",
-};
-
 export function isTotalAssetCategory(value: string): value is TotalAssetCategory {
   return (TOTAL_ASSET_CATEGORIES as readonly string[]).includes(value);
 }

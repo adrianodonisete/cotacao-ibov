@@ -72,3 +72,20 @@ O "Total Peso" é o total dos pesos da categoria, "total_categories_cache.total_
 Na tabela dos totais por ativo, adicionar a opção de ordenar em cada título da coluna (ASC / DESC - usar símbolos de seta para indicar a ordem).
 
 No final da execução, salvar o plano em dev/plans/tela-totais-assets/order-by-column-and-total-by-category.md
+
+
+sim, criar o teste snapshot/visual sugerido.
+
+adicionar no @AGENTS.md (se necessário) e no @DESIGN.md a informação sobre como deve ser a largura dessa página específica (manter o idioma inglês desses arquivos).
+
+
+
+Atue como um dev nextjs senior.
+Checar o MCP context7 quando necessário.
+
+Preciso fazer ajustes no layout da tela "Total por Ações/FIIs".
+
+- Remover o subtítulo "Totais Categoria Ações/FIIs".
+- Remover a coluna "Categoria" da table, não é mais necessária.
+
+Após ajustar, salvar a memória no mem0 e atualizar o plano em dev/plans/tela-totais-assets/order-by-column-and-total-by-category.md.

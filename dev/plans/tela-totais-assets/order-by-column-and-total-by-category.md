@@ -4,7 +4,9 @@
 
 **Objetivo:** exibir logo abaixo do título da página `Total por Ações/FIIs` um resumo da categoria calculado a partir de `total_categories_cache` e permitir ordenar todas as colunas da tabela de totais por ativo (ASC/DESC) sem alterar o banco nem os crons.
 
-**Arquitetura:** estender `GET /api/total-assets` para retornar, junto com `totals`, os três campos brutos do cache de categoria. A página calcula `lucro` e `% lucro` no cliente, mantém títulos já existentes (alterando apenas texto), introduz subtítulo dinâmico e adiciona ordenação client-side via `useMemo`.
+**Arquitetura:** estender `GET /api/total-assets` para retornar, junto com `totals`, os três campos brutos do cache de categoria. A página calcula `lucro` e `% lucro` no cliente, mantém títulos já existentes e adiciona ordenação client-side via `useMemo`.
+
+> **Ajuste pós-implementação (2026-07-29):** removidos o subtítulo "Totais Categoria Ações/FIIs" e a coluna "Categoria" da tabela (sempre redundante: a página já é roteada por categoria). `TOTAL_ASSET_CATEGORY_SUBTITLES` e o `format` parameter `categoryLabelMap` foram removidos; o `fetch('/api/categories')` da página deixa de existir.
 
 **Stack:** Next.js 16.2.1 (App Router), React 19, TypeScript 5, Supabase JS 2 (`maybeSingle`), Tailwind 4, `node:test` via `tsx --test`.
 
@@ -16,11 +18,11 @@
 | --- | --- | --- |
 | `src/lib/total-assets.ts` | criar | funções puras: `normalizeTotalCategoryTotals`, `calculateCategoryPerformance`, `sortTotalAssets` |
 | `src/lib/total-assets.test.ts` | criar | testes `node:test` das funções puras |
-| `src/lib/total-asset-categories.ts` | modificar | atualizar `TOTAL_ASSET_CATEGORY_TITLES` + adicionar `TOTAL_ASSET_CATEGORY_SUBTITLES` |
-| `src/lib/total-asset-categories.test.ts` | criar | testes de `TOTAL_ASSET_CATEGORY_TITLES` e subtítulos |
+| `src/lib/total-asset-categories.ts` | modificar | manter `TOTAL_ASSET_CATEGORY_TITLES` (sem subtítulos) |
+| `src/lib/total-asset-categories.test.ts` | criar | testes de `TOTAL_ASSET_CATEGORY_TITLES` |
 | `src/types/total-asset.ts` | modificar | adicionar `TotalCategoryTotals` e `categoryTotals` em `TotalAssetsApiResponse` |
 | `src/app/api/total-assets/route.ts` | modificar | incluir `total_categories_cache` via `maybeSingle` (zeros quando ausente) |
-| `src/app/total-assets/[category]/page.tsx` | modificar | subtítulo, linha-resumo, ordenação da tabela |
+| `src/app/total-assets/[category]/page.tsx` | modificar | linha-resumo (sem subtítulo) e ordenação da tabela (sem coluna Categoria) |
 
 Sem mudanças em: `db/`, `scripts/`, schema, crons, navbar.
 
@@ -245,7 +247,7 @@ git commit -m "feat(total-assets): helpers puros para totais por categoria e ord
 
 ---
 
-## Task 2 — Títulos e subtítulos
+## Task 2 — Títulos (apenas)
 
 **Arquivos:**
 - Modificar `src/lib/total-asset-categories.ts`
@@ -257,19 +259,11 @@ git commit -m "feat(total-assets): helpers puros para totais por categoria e ord
 // src/lib/total-asset-categories.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  TOTAL_ASSET_CATEGORY_SUBTITLES,
-  TOTAL_ASSET_CATEGORY_TITLES,
-} from "./total-asset-categories";
+import { TOTAL_ASSET_CATEGORY_TITLES } from "./total-asset-categories";
 
 test("título singular para cada categoria", () => {
   assert.equal(TOTAL_ASSET_CATEGORY_TITLES.acao, "Total por Ações");
   assert.equal(TOTAL_ASSET_CATEGORY_TITLES.fii, "Total por FIIs");
-});
-
-test("subtítulo dinâmico por categoria", () => {
-  assert.equal(TOTAL_ASSET_CATEGORY_SUBTITLES.acao, "Totais Categoria Ações");
-  assert.equal(TOTAL_ASSET_CATEGORY_SUBTITLES.fii, "Totais Categoria FIIs");
 });
 ```
 
@@ -294,26 +288,23 @@ export const TOTAL_ASSET_CATEGORY_TITLES: Record<TotalAssetCategory, string> = {
   fii: "Total por FIIs",
 };
 
-export const TOTAL_ASSET_CATEGORY_SUBTITLES: Record<TotalAssetCategory, string> = {
-  acao: "Totais Categoria Ações",
-  fii: "Totais Categoria FIIs",
-};
-
 export function isTotalAssetCategory(value: string): value is TotalAssetCategory {
   return (TOTAL_ASSET_CATEGORIES as readonly string[]).includes(value);
 }
 ```
 
+> **Sem `TOTAL_ASSET_CATEGORY_SUBTITLES`:** removido no ajuste pós-implementação (subtítulo não é mais renderizado na página).
+
 - [ ] **Step 2.4 — Verificar verde**
 
 Comando: `npx --no-install tsx --test "src/lib/total-asset-categories.test.ts"`
-Esperado: 2 testes passando.
+Esperado: 1 teste passando.
 
 - [ ] **Step 2.5 — Commit**
 
 ```bash
 git add src/lib/total-asset-categories.ts src/lib/total-asset-categories.test.ts
-git commit -m "feat(total-assets): títulos singulares e subtítulos por categoria"
+git commit -m "feat(total-assets): títulos singulares por categoria"
 ```
 
 ---
@@ -445,7 +436,7 @@ git commit -m "feat(total-assets): retorna categoryTotals de total_categories_ca
 
 ---
 
-## Task 5 — Página: subtítulo, resumo e ordenação
+## Task 5 — Página: linha-resumo e ordenação
 
 **Arquivos:**
 - Modificar `src/app/total-assets/[category]/page.tsx`
@@ -457,11 +448,9 @@ git commit -m "feat(total-assets): retorna categoryTotals de total_categories_ca
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Category } from '@/types/category';
 import {
   isTotalAssetCategory,
   TOTAL_ASSET_CATEGORIES,
-  TOTAL_ASSET_CATEGORY_SUBTITLES,
   TOTAL_ASSET_CATEGORY_TITLES,
   type TotalAssetCategory,
 } from '@/lib/total-asset-categories';
@@ -488,70 +477,26 @@ type ColumnDef = {
   label: string;
   align: 'left' | 'right' | 'center';
   type: 'string' | 'number' | 'date';
-  format: (row: TotalAssetWithInfo, categoryLabelMap: Record<string, string>) => string;
+  format: (row: TotalAssetWithInfo) => string;
   valueClass?: (row: TotalAssetWithInfo) => string;
 };
 ```
 
 - [ ] **Step 5.3 — Constante `COLUMNS`**
 
-Manter a ordem atual das 18 colunas. Para cada uma: `field`, `label`, `align`, `type` e `format` retornando string (já extraídos da renderização atual). Exemplos:
+Manter a ordem das 17 colunas (a coluna "Categoria" foi removida — ajuste pós-implementação, era sempre redundante porque a página já é roteada por categoria). Para cada uma: `field`, `label`, `align`, `type` e `format` retornando string. Exemplo (cabeçalho da primeira coluna, restante idêntico ao código atual):
 
 ```ts
 const COLUMNS: ColumnDef[] = [
   { field: 'code', label: 'Código', align: 'left', type: 'string',
     format: (row) => row.code, valueClass: () => 'font-mono font-semibold text-ink' },
-  { field: 'category_name', label: 'Categoria', align: 'left', type: 'string',
-    format: (row, map) => map[row.category_name] ?? row.category_name,
-    valueClass: () => 'text-muted' },
   { field: 'info', label: 'Informações', align: 'left', type: 'string',
     format: (row) => row.info || '—',
     valueClass: () => 'text-body max-w-xs truncate' },
   { field: 'weight', label: 'Peso', align: 'right', type: 'number',
     format: (row) => Number(row.weight).toFixed(2),
     valueClass: () => 'text-body' },
-  { field: 'percentual_objetivo', label: '% Objetivo', align: 'right', type: 'number',
-    format: (row) => formatPercent(row.percentual_objetivo),
-    valueClass: () => 'text-body' },
-  { field: 'montante_objetivo', label: 'R$ Objetivo', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.montante_objetivo),
-    valueClass: () => 'text-body' },
-  { field: 'total_qtd', label: 'Quantidade', align: 'right', type: 'number',
-    format: (row) => formatQtd(row.total_qtd),
-    valueClass: () => 'text-body' },
-  { field: 'cotacao', label: 'Cotação', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.cotacao),
-    valueClass: () => 'text-body' },
-  { field: 'total_aportado', label: 'R$ Aportado', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.total_aportado),
-    valueClass: () => 'text-body' },
-  { field: 'percentual_aportado', label: '% Aportado', align: 'right', type: 'number',
-    format: (row) => formatPercent(row.percentual_aportado),
-    valueClass: () => 'text-body' },
-  { field: 'montante_atual', label: 'R$ Montante Atual', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.montante_atual),
-    valueClass: () => 'text-body' },
-  { field: 'percentual_montante_atual', label: '% Montante Atual', align: 'right', type: 'number',
-    format: (row) => formatPercent(row.percentual_montante_atual),
-    valueClass: () => 'text-body' },
-  { field: 'lucro', label: 'R$ Lucro', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.lucro),
-    valueClass: (row) => `font-medium ${row.lucro >= 0 ? 'text-success' : 'text-error'}` },
-  { field: 'percentual_lucro', label: '% Lucro', align: 'right', type: 'number',
-    format: (row) => formatPercent(row.percentual_lucro),
-    valueClass: (row) => row.percentual_lucro >= 0 ? 'text-success' : 'text-error' },
-  { field: 'montante_falta', label: 'R$ Montante Falta', align: 'right', type: 'number',
-    format: (row) => formatCurrencyBRL(row.montante_falta),
-    valueClass: () => 'text-body' },
-  { field: 'percentual_falta', label: '% Montante Falta', align: 'right', type: 'number',
-    format: (row) => formatPercent(row.percentual_falta),
-    valueClass: () => 'text-body' },
-  { field: 'primeiro_aporte', label: 'Primeiro Aporte', align: 'center', type: 'date',
-    format: (row) => formatDate(row.primeiro_aporte),
-    valueClass: () => 'text-body' },
-  { field: 'ultimo_aporte', label: 'Último Aporte', align: 'center', type: 'date',
-    format: (row) => formatDate(row.ultimo_aporte),
-    valueClass: () => 'text-body' },
+  // ... restante das 15 colunas (peso, %, R$, datas) sem mudanças em relação à Task 5 original
 ];
 ```
 
@@ -559,7 +504,6 @@ const COLUMNS: ColumnDef[] = [
 
 ```ts
 const [totals, setTotals] = useState<TotalAssetWithInfo[]>([]);
-const [categories, setCategories] = useState<Category[]>([]);
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState<string | null>(null);
 const [hasSearched, setHasSearched] = useState(false);
@@ -570,6 +514,8 @@ const [categoryTotals, setCategoryTotals] = useState<{
 } | null>(null);
 const [sort, setSort] = useState<SortState>({ field: 'code', direction: 'asc' });
 ```
+
+> **Sem `categories` state nem `categoryLabelMap`:** removidos no ajuste pós-implementação (serviam apenas à coluna Categoria).
 
 - [ ] **Step 5.5 — `fetchTotals` tipado**
 
@@ -617,38 +563,22 @@ const sortedTotals = useMemo(
 );
 ```
 
-- [ ] **Step 5.8 — Header sem `Fonte:` + subtítulo + resumo**
+- [ ] **Step 5.8 — Header sem `Fonte:` + linha-resumo (sem subtítulo)**
 
 Substituir o bloco `H1`/`Lead` atual pelo:
 
 ```tsx
         <div className="mb-8">
           <H1 className="text-display-sm">{title}</H1>
-          <p className="mt-2 text-title-md text-body-strong">
-            {TOTAL_ASSET_CATEGORY_SUBTITLES[category]}
-          </p>
-          {categoryTotals && (() => {
-            const perf = calculateCategoryPerformance(categoryTotals);
-            const lucroClass = perf.lucro >= 0 ? 'text-success' : 'text-error';
-            const sep = <span className="mx-3 text-muted-soft" aria-hidden>·</span>;
-            return (
-              <p className="mt-3 text-body-sm text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>Total Aportado: <span className="text-ink font-medium">{formatCurrencyBRL(categoryTotals.totalAportado)}</span></span>
-                {sep}
-                <span>Total Atual: <span className="text-ink font-medium">{formatCurrencyBRL(categoryTotals.totalAtual)}</span></span>
-                {sep}
-                <span>Lucro: <span className={`font-medium ${lucroClass}`}>{formatCurrencyBRL(perf.lucro)}</span></span>
-                {sep}
-                <span>% Lucro: <span className={`font-medium ${lucroClass}`}>{formatPercent(perf.percentualLucro)}</span></span>
-                {sep}
-                <span>Total Peso: <span className="text-ink font-medium">{categoryTotals.totalPeso.toFixed(2)}</span></span>
-              </p>
-            );
-          })()}
+          {categoryTotals && (
+            <SummaryLine totals={categoryTotals} />
+          )}
         </div>
 ```
 
-> `formatPercent` precisa aplicar `pt-BR` com duas casas (`(Number(value)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`). Atualizar a função existente na página substituindo o corpo por essa implementação; manter nome.
+> **Sem `<p>` de subtítulo** (`TOTAL_ASSET_CATEGORY_SUBTITLES[category]`): removido no ajuste pós-implementação.
+
+> `formatPercent` precisa aplicar `pt-BR` com duas casas (`(Number(value)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`). Implementação já presente na página.
 
 - [ ] **Step 5.9 — Cabeçalho da tabela com ordenação**
 
@@ -699,7 +629,7 @@ Substituir o bloco `H1`/`Lead` atual pelo:
                               key={col.field}
                               className={`px-4 py-3 text-${col.align} ${col.valueClass ? col.valueClass(row) : 'text-body'}`}
                             >
-                              {col.format(row, categoryLabelMap)}
+                              {col.format(row)}
                             </td>
                           ))}
                         </tr>
@@ -716,7 +646,7 @@ Esperado: nenhum erro.
 
 ```bash
 git add src/app/total-assets/[category]/page.tsx
-git commit -m "feat(total-assets): subtítulo, resumo por categoria e ordenação das colunas"
+git commit -m "feat(total-assets): linha-resumo por categoria e ordenação das colunas"
 ```
 
 ---
@@ -745,6 +675,6 @@ npm run build
 ```
 
 - [ ] **Smoke manual em `npm run dev`**
-- `/total-assets/acao`: subtítulo “Totais Categoria Ações”, linha-resumo com 5 métricas, sem “Fonte: total_assets_cache”, ordenação alterna ASC/DESC, primeiro clique em cada coluna, seta visível em todas (esmaecida nas inativas).
-- `/total-assets/fii`: idem para “Totais Categoria FIIs”.
+- `/total-assets/acao`: linha-resumo com 5 métricas abaixo do título, sem "Fonte: total_assets_cache", sem subtítulo, sem coluna "Categoria" (17 colunas), ordenação alterna ASC/DESC, primeiro clique em cada coluna, seta visível em todas (esmaecida nas inativas).
+- `/total-assets/fii`: idem (mesma estrutura, mesmo número de colunas).
 - Mobile: linha-resumo quebra; tabela mantém `min-w-max` com scroll horizontal.
