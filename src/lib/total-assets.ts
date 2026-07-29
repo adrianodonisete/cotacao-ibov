@@ -1,5 +1,7 @@
 import type { TotalAsset } from "@/types/total-asset";
 
+export type { TotalAsset };
+
 export type TotalCategoryTotals = {
   totalAportado: number;
   totalAtual: number;
