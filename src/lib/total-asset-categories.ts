@@ -6,8 +6,13 @@ export const TOTAL_ASSET_CATEGORIES: readonly TotalAssetCategory[] = [
 ] as const;
 
 export const TOTAL_ASSET_CATEGORY_TITLES: Record<TotalAssetCategory, string> = {
-  acao: "Totais por Ações",
-  fii: "Totais por FIIs",
+  acao: "Total por Ações",
+  fii: "Total por FIIs",
+};
+
+export const TOTAL_ASSET_CATEGORY_SUBTITLES: Record<TotalAssetCategory, string> = {
+  acao: "Totais Categoria Ações",
+  fii: "Totais Categoria FIIs",
 };
 
 export function isTotalAssetCategory(value: string): value is TotalAssetCategory {
