@@ -51,3 +51,24 @@ Passo a passo:
     2.1. para cada ativo, calcular os totais ou preencher os campos conforme regras especificadas nas linhas 27 a 42.
     2.2. salvar o resultado na tabela "total_assets_cache".
   3. Salvar a plan em dev/plans/cron-totais-por-assets/create-cron-totais-por-assets.md
+
+
+
+Atue como um dev nextjs senior.
+
+Preciso exibir o total aportado e atual, por categoria no topo da tela total por Ações/FIIs, conforme o total calculado na tabela "total_categories_cache".
+
+Manter o mesmo padrão de layout atual, detalhes em "DESIGN.md".
+
+O título da página continua sendo "Total por Ações/FIIs", mas deve ser exibido os totais logo abaixo do título.
+Remover o texto "Fonte: total_assets_cache".
+
+Subtítulo: Totais Categoria Ações/FIIs
+Total Aportado: R$ 100.000,00 - Total Atual: R$ 125.010,00 - Lucro: R$ 25.010,00 - % Lucro: 25,01% - Total Peso: 91.31   (todos na mesma linha)
+"Total Aportado" e "Total Atual" são campos da tabela "total_categories_cache": "total_assets_value_aported" e "total_assets_value_current".
+"Lucro" e "% Lucro" devem ser calculados, baseados nos totais "Total Aportado" e "Total Atual".
+O "Total Peso" é o total dos pesos da categoria, "total_categories_cache.total_assets_weight" (esse valor não é percentual).
+
+Na tabela dos totais por ativo, adicionar a opção de ordenar em cada título da coluna (ASC / DESC - usar símbolos de seta para indicar a ordem).
+
+No final da execução, salvar o plano em dev/plans/tela-totais-assets/order-by-column-and-total-by-category.md
