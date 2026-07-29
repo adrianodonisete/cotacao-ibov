@@ -4,9 +4,11 @@ import {
   isTotalAssetCategory,
   TOTAL_ASSET_CATEGORIES,
 } from "@/lib/total-asset-categories";
+import { normalizeTotalCategoryTotals } from "@/lib/total-assets";
 import type {
   TotalAssetWithInfo,
   TotalAssetsApiResponse,
+  TotalCategoryTotals,
 } from "@/types/total-asset";
 
 export async function GET(request: NextRequest): Promise<NextResponse<TotalAssetsApiResponse>> {
@@ -38,10 +40,26 @@ export async function GET(request: NextRequest): Promise<NextResponse<TotalAsset
     return NextResponse.json({ error: cacheError.message }, { status: 500 });
   }
 
+  const { data: categoryRow, error: categoryError } = await supabase
+    .from("total_categories_cache")
+    .select("total_assets_value_aported, total_assets_value_current, total_assets_weight")
+    .eq("category", category)
+    .maybeSingle();
+
+  if (categoryError) {
+    return NextResponse.json({ error: categoryError.message }, { status: 500 });
+  }
+
+  const categoryTotals = normalizeTotalCategoryTotals(categoryRow);
+
   const rows = cacheRows ?? [];
 
   if (rows.length === 0) {
-    return NextResponse.json({ totals: [], category });
+    return NextResponse.json({
+      totals: [],
+      category,
+      categoryTotals: categoryTotals as TotalCategoryTotals,
+    });
   }
 
   const codes = rows.map((r) => r.code);
@@ -87,5 +105,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<TotalAsset
     };
   });
 
-  return NextResponse.json({ totals, category });
+  return NextResponse.json({
+    totals,
+    category,
+    categoryTotals: categoryTotals as TotalCategoryTotals,
+  });
 }
