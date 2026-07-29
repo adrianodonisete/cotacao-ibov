@@ -4,6 +4,10 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# Project layout conventions
+
+Most pages follow the standard ~1200px centered content width defined in `DESIGN.md` (Grid & Container). One page is a deliberate exception: `/total-assets/[category]` (served at `/total-assets/fii` and `/total-assets/acao`) — it uses 100% viewport width with the browser's native horizontal scrollbar so the 18-column totals table can stay legible. See `DESIGN.md` → "Width Exception — `/total-assets/[category]`" for the full rule set (no `max-w-*` on the wrapper, no `<Card>` / no `overflow-x-auto` around the `<table>`, the table carries the cream-card visual directly). Do not "fix" this page back to the standard container width.
+
 # Mem0 (persistent memory)
 
 This project has the **mem0 MCP server** configured at project scope (`.cursor/mcp.json`). It gives agents long-term memory across sessions. Use it to remember decisions, conventions, gotchas, and user preferences specific to this codebase.

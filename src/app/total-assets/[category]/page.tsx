@@ -308,7 +308,7 @@ export default function TotalAssetsByCategoryPage() {
                   {totals.length} ativo{totals.length !== 1 ? 's' : ''} listado
                   {totals.length !== 1 ? 's' : ''}
                 </p>
-                <div className="overflow-x-auto">
+                <div>
                   <table className="w-full text-body-sm min-w-max text-ink bg-surface-card border border-hairline rounded-lg overflow-hidden">
                     <thead>
                       <tr className="bg-surface-cream-strong border-b border-hairline text-caption-uppercase uppercase text-muted">

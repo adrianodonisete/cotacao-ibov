@@ -409,6 +409,22 @@ If Copernicus / Tiempos Headline is unavailable, **Cormorant Garamond** at weigh
 - **Connector tile grids:** 4-up or 6-up at desktop, 2-up at tablet, 1-up at mobile.
 - **Pricing grid:** 3-up at desktop (Free / Pro / Team / Enterprise often), 1-up at mobile.
 
+### Width Exception — `/total-assets/[category]`
+
+The totals-by-category page (`src/app/total-assets/[category]/page.tsx`, served at `/total-assets/fii` and `/total-assets/acao`) intentionally breaks the ~1200px rule.
+
+**Reason:** the table renders 18 columns wide (código, categoria, info, peso, %, R$, etc.). At ~1200px the columns either compress to illegible widths or trigger an internal scrollbar on the wrapper.
+
+**Convention:**
+- The outer `<div>` must use `w-full` only — no `max-w-*` class.
+- The `<table>` must keep `min-w-max` so columns never compress.
+- The `<table>` itself carries the cream-card visual (`text-ink bg-surface-card border border-hairline rounded-lg overflow-hidden`) — it is NOT wrapped in a `<Card>` component. The `<Card>` wrapper clips overflow, which is exactly what this page must avoid.
+- The `<thead>` first row uses `bg-surface-cream-strong` for header/row contrast.
+- The `<main>` keeps its `px-6 py-16` horizontal padding; the wrapper fills the rest.
+- The browser's native horizontal scrollbar handles wide-viewport overflow — never add `overflow-x-auto` / `overflow-auto` to any ancestor of the `<table>`. Doing so re-introduces the inner scrollbar and breaks this convention.
+
+**Regressions to watch for:** if a future change adds a `<Card variant="feature" padding="none" className="overflow-x-auto">` (or any wrapper with `overflow-x-*`) around the `<table>`, or applies `max-w-7xl` (or any `max-w-*`) to the page wrapper, the page falls back to the ~70% width / inner scrollbar state and must be reverted.
+
 ### Whitespace Philosophy
 The cream canvas + serif display + generous internal padding create an editorial pacing — Claude reads like a long-form magazine column rather than a marketing template. Whitespace between bands stays uniform at 96px; whitespace inside cards is generous (32px), letting type breathe.
 
