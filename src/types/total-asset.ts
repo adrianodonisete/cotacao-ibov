@@ -22,8 +22,15 @@ export interface TotalAssetWithInfo extends TotalAsset {
   weight: number;
 }
 
+export interface TotalCategoryTotals {
+  totalAportado: number;
+  totalAtual: number;
+  totalPeso: number;
+}
+
 export interface TotalAssetsApiResponse {
   totals?: TotalAssetWithInfo[];
   category?: string;
+  categoryTotals?: TotalCategoryTotals;
   error?: string;
 }
