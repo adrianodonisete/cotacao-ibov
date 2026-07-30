@@ -16,6 +16,11 @@ CREATE INDEX IF NOT EXISTS idx_dividendos_payment_date ON dividendos (payment_da
 UNIQUE (code, quantity, payment_date, total_liquid);
 ALTER TABLE dividendos DISABLE ROW LEVEL SECURITY;
 
+1.1. Gerar o script pra criar os novos campos de cache nas tabelas "total_categories_cache" e "total_assets_cache".
+total_categories_cache.total_dividends
+total_assets_cache.total_dividends
+
+
 2. Criar tela de cadastro em lote de dividendos.
 Criar uma tela de cadastro em lote de dividendos, URL: /cadastro-dividendos.
 Nome da tela no menu de navegação (principal: Cadastro, submenu: Cadastrar Dividendos).
@@ -34,3 +39,18 @@ Ao clicar no botão cadastrar, vai cadastrar os dividendos no banco de dados (ta
     Não permitir duplicidades de dividendos (tem o UNIQUE dos campos code, quantity, payment_date, total_liquid na tabela "dividendos").
         Se encontrar duplicidade, ignorar a linha;
         Os dividendos não duplicados devem ser cadastrados normalmente.
+    Aplicar o tratamento no conteúdo quando tiver evento "input", trocar tabs por ponto e vírgula (igual tem nas outras telas de cadastro).
+
+
+3. Criar tela de consulta de dividendos.
+Criar uma tela de consulta de dividendos, URL: /listagem-dividendos.
+Nome da tela no menu de navegação (principal: Listar, submenu: Listar Dividendos).
+No formulário de pesquisa dever ter a opção de filtrar por:
+  - Tipo do ativo (select - opções: todos, acao, fii, stock, reit - tabela categories) valor default: todos
+  - Código do ativo (input text)
+  - Data de pagamento (date picker - data inicial e final): default: primeiro dia do mês atual até hoje
+
+
+4. Criar tela de detalhes de dividendo.
+Criar uma tela de detalhes de dividendo, URL: /detalhes-dividendo.
+Nome da tela no menu de navegação (principal: Detalhes, submenu: Detalhes de Dividendo).
