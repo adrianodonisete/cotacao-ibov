@@ -134,8 +134,9 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
       const total_aportado = ap.total_aportado;
       const montante_atual = total_qtd * cotacao;
 
-      const percentual_objetivo = peso > 0 ? total_peso / peso : 0;
-      const montante_objetivo = total_value_curr * percentual_objetivo;
+      const percentual_objetivo =
+        peso > 0 && total_peso > 0 ? (peso / total_peso) * 100 : 0;
+      const montante_objetivo = total_value_curr * (percentual_objetivo / 100);
       const percentual_aportado =
         total_value_curr > 0 ? (total_aportado / total_value_curr) * 100 : 0;
       const percentual_montante_atual =

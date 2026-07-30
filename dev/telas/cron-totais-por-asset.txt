@@ -89,3 +89,40 @@ Preciso fazer ajustes no layout da tela "Total por Ações/FIIs".
 - Remover a coluna "Categoria" da table, não é mais necessária.
 
 Após ajustar, salvar a memória no mem0 e atualizar o plano em dev/plans/tela-totais-assets/order-by-column-and-total-by-category.md.
+
+
+
+Atue como um dev nextjs senior.
+Utilizar o MCP context7 quando for necessário.
+
+Corrigir cálculo das colunas "% Objetivo" e "R$ Objetivo" na tela "total assets".
+Esses valores são calculados pela CRON "/scripts/calculate-totals-by-assets.ts".
+Fazer a correção apenas na CRON, não na tela "total assets", pois a tela "total assets" exibe os valores já calculados.
+
+A coluna ""total_assets_cache".percentual_objetivo" é a proporção do peso do ativo (ativos.weight) para o total dos pesos da categoria (total_categories_cache.total_assets_weight).
+Exemplo: 
+Total Peso (ações): 91.31
+Peso do ativo (ABEV3): 1.50
+"% Objetivo" (ABEV3): 1.5 / 91.31 = 0.0164 * 100 = 1.64%
+Ou seja, o peso do ativo ABEV3 é 1.64% do total dos pesos da categoria de ações.
+
+E a coluna "total_assets_cache.montante_objetivo" é o % Objetivo multiplicado pelo total do ativo (total_categories_cache.total_assets_value_current).
+Exemplo: 
+Total Atual (ações): R$ 14.506,65
+Percentual Objetivo (ABEV3): 1.64%
+"R$ Objetivo" (ABEV3): 1.64% * R$ 14.506,65 = R$ 237,41
+
+Verificar se o calculo das colunas "total_assets_cache.montante_falta" e "total_assets_cache.percentual_falta" estão corretos.
+Exemplo:
+Total Atual (ações): R$ 14.506,65
+Total Objetivo (ABEV3): R$ 237,41
+"R$ Falta" (ABEV3): R$ 14.506,65 - R$ 237,41 = R$ 14.269,24
+"% Falta" (ABEV3): 100 - ((14.269,24 / 237,41) * 100) = 94,02%
+Ou seja, o total atual é menor que o total objetivo, portanto, a falta é 94,02%.
+
+No final da execução, atualizar o arquivo AGENTS.md, se for necessário e salvar a memória no mem0.
+
+
+na tela de totais-assets, ajustar as cores das colunas "% Falta" e "R$ Falta" para verde, se o valor for maior que 0, e para vermelho, se o valor for menor que 0.
+
+

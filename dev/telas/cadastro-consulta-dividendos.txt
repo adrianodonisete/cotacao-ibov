@@ -1,0 +1,36 @@
+Atue como um dev nextjs senior e especialista em supabase.
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar o MCP context7 quando for necessário.
+
+Etapas:
+1. Gerar o script pra criar a tabela "dividendos" no banco de dados e os índices necessários.
+    - id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    - code   VARCHAR(50)    NOT NULL,
+    - payment_date    DATE           NOT NULL,
+    - quantity        NUMERIC(15, 6) NOT NULL,
+    - total_liquid    NUMERIC(15, 6) NOT NULL,
+    - created_at      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    - updated_at      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE INDEX IF NOT EXISTS idx_dividendos_code ON dividendos (code);
+CREATE INDEX IF NOT EXISTS idx_dividendos_payment_date ON dividendos (payment_date);
+UNIQUE (code, quantity, payment_date, total_liquid);
+ALTER TABLE dividendos DISABLE ROW LEVEL SECURITY;
+
+2. Criar tela de cadastro em lote de dividendos.
+Criar uma tela de cadastro em lote de dividendos, URL: /cadastro-dividendos.
+Nome da tela no menu de navegação (principal: Cadastro, submenu: Cadastrar Dividendos).
+No formulário deve ter um textarea name="list_dividendos" label="Lista de Dividendos" e o botão "cadastrar".
+Cada linha do textarea vai ser um dividendo diferente, cada coluna é uma informação do dividendo, separado por ponto e vírgula.
+As colunas são: 
+    código (string), data pagamento (date formatos aceitos: dd/mm/yyyy e yyyy-mm-dd), quantidade (float), total líquido (float)
+    
+Ao clicar no botão cadastrar, vai cadastrar os dividendos no banco de dados (tabela "dividendos").
+    Usar TRIM em todos os campos para remover espaços em branco no início e no fim.
+    Salvar o campo "code" em maiúsculo.
+    Usuários brasileiros tendem a usar vírgula como separador decimal (1,5). O parser deve aceitar tanto . quanto , no campo quantidade e valor total.
+    Ignorar linhas em branco e linhas que começam com "#".
+    Ignorar linhas com mais ou menos de 4 colunas.
+    Ignorar linhas com valores nulos ou vazios ou inválidos (quantidade não numérica, valor total não numérico, data da operação não string, etc).
+    Não permitir duplicidades de dividendos (tem o UNIQUE dos campos code, quantity, payment_date, total_liquid na tabela "dividendos").
+        Se encontrar duplicidade, ignorar a linha;
+        Os dividendos não duplicados devem ser cadastrados normalmente.

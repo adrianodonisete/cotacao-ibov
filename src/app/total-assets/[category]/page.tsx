@@ -397,8 +397,19 @@ function SummaryLine({ totals }: { totals: TotalCategoryTotals }) {
 }
 
 function cellColorClass(field: SortableField, row: TotalAssetWithInfo): string {
-  if (field === 'lucro') return row.lucro >= 0 ? 'text-success' : 'text-error';
+  const positiveClass = 'text-success';
+  const negativeClass = 'text-error';
+  if (field === 'lucro')
+    return row.lucro >= 0 ? positiveClass : negativeClass;
   if (field === 'percentual_lucro')
-    return row.percentual_lucro >= 0 ? 'text-success' : 'text-error';
+    return row.percentual_lucro >= 0 ? positiveClass : negativeClass;
+  if (field === 'percentual_objetivo')
+    return row.percentual_objetivo >= 0 ? positiveClass : negativeClass;
+  if (field === 'montante_objetivo')
+    return row.montante_objetivo >= 0 ? positiveClass : negativeClass;
+  if (field === 'percentual_falta')
+    return row.percentual_falta >= 0 ? positiveClass : negativeClass;
+  if (field === 'montante_falta')
+    return row.montante_falta >= 0 ? positiveClass : negativeClass;
   return '';
 }
