@@ -143,7 +143,9 @@ Gerar o plano apenas para a etapa 2, conforme detalhado abaixo, não fazer nenhu
 Etapa 2. Alterar CRON para calcular o total de dividendos na tabela "total_assets_cache".
 CRON: /scripts/calculate-totals-by-assets.ts
 
-Calcular o total de dividendos para cada ativo na tabela "total_assets_cache".
-total_assets_cache.total_dividends = SUM(dividendos.total_liquid) inner join ativos on dividendos.code = ativos.code
+Não precisa calcular o total de dividendos para os ativos da categoria "Tesouro Direto" (ativos.type = "td").
 
-No final da execução da etapa 2, atualizar o plano em /dev/plans/cron-totais-por-asset/calculate-totals-by-assets.md
+Calcular o total de dividendos para cada ativo na tabela "total_assets_cache".
+total_assets_cache.total_dividends = SUM(dividendos.total_liquid) inner join ativos on dividendos.code = ativos.code and ativos.type <> "td"
+
+No final da execução da etapa 2, atualizar o plano em /dev/plans/cron-totais-por-asset/create-cron-totais-por-assets.md

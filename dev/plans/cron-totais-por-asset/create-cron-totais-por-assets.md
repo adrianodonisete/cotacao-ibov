@@ -274,3 +274,72 @@ sequenceDiagram
 - **No new env vars** — uses existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` via `getSupabaseServer()`.
 - **CLI compatibility**: `npm run calculate-totals-by-assets` runs without `--job-id`; the script's progress tracking silently no-ops in that mode (same behavior as `calculate-totals-by-category`).
 - **Idempotency**: upsert on `code` means re-running the cron just refreshes the rows.
+
+---
+
+## Etapa 2 — Total de Dividendos em `total_assets_cache`
+
+> Aplicada em 31/07/2026.
+
+### Objetivo
+Calcular e gravar `total_dividends` em `total_assets_cache`, **excluindo** ativos da categoria `td` (Tesouro Direto não paga dividendos).
+
+### Mudanças em `scripts/calculate-totals-by-assets.ts`
+
+1. **Type alias** `DividendRow = { code: string; total_liquid: number }` (linha 19).
+2. **5ª query no `Promise.all`** inicial (linha 25-33): `supabase.from("dividendos").select("code, total_liquid")`. Erro é tratado junto aos demais preloads (`process.exit(1)` em linha 35-52).
+3. **Agregação por código** (linha 111-115): `dividendosByCode: Map<string, number>` montado em JS — soma `total_liquid` por `code`. Reproduz `SUM(dividendos.total_liquid)` do SQL.
+4. **Lookup por ativo no loop** (linha 144-145):
+   ```ts
+   const total_dividends =
+     ativo.type === "td" ? 0 : dividendosByCode.get(code) ?? 0;
+   ```
+   Ativos `td` recebem `0` sem consultar o Map.
+5. **`total_dividends` incluído no `upsert`** (linha 184) em `total_assets_cache`.
+6. **Log de sucesso** por ativo (linha 195-199) passou a incluir `dividendos=<valor>`.
+
+### Equivalência SQL
+
+Spec: `total_assets_cache.total_dividends = SUM(dividendos.total_liquid) INNER JOIN ativos ON dividendos.code = ativos.code AND ativos.type <> "td"`.
+
+O preload único de `dividendos` + agregação por `code` em Map + lookup no loop (com curto-circuito para `type === "td"`) reproduz exatamente essa semântica, mantendo o padrão de batch-load já usado pelo script (5 preloads paralelos no `Promise.all`, sem N+1).
+
+### Edge cases
+
+| Cenário | Comportamento |
+|---|---|
+| `ativo.type === "td"` | `total_dividends = 0` (curto-circuito em Tarefa 4, sem lookup) |
+| Ativo em outra categoria, sem dividendos | `total_dividends = 0` (`Map.get` → `undefined` → `0`) |
+| `dividendos.total_liquid` `NULL` | `Number(null ?? 0) = 0` no somatório do preload |
+| Múltiplas linhas para o mesmo `code` em `dividendos` | Somadas no Map (Tarefa 3) — equivale ao `SUM()` do SQL |
+| Falha no preload de `dividendos` | `process.exit(1)` antes do loop (consistente com demais preloads) |
+
+### Verificação
+
+1. **Lint**: `npm run lint`
+2. **Execução local**: `npm run calculate-totals-by-assets` — acompanhar logs (agora com `dividendos=<valor>` por ativo; para ativos `td`, deve ser `dividendos=0`).
+3. **Conferência cruzada no SQL do Supabase**:
+
+```sql
+-- Esperado para ativos não-td:
+SELECT a.code, COALESCE(SUM(d.total_liquid), 0) AS esperado
+FROM ativos a
+LEFT JOIN dividendos d ON d.code = a.code
+WHERE a.type <> 'td'
+GROUP BY a.code
+ORDER BY a.code;
+
+-- Cache gravado:
+SELECT code, total_dividends
+FROM total_assets_cache
+WHERE category_name <> 'td'
+ORDER BY code;
+```
+
+Os valores têm que coincidir (tolerância `<= 0.01`, consistente com `NUMERIC(15,2)`).
+4. **Conferência para `td`**:
+
+```sql
+SELECT code, total_dividends FROM total_assets_cache WHERE category_name = 'td';
+-- Esperado: todos com total_dividends = 0
+```

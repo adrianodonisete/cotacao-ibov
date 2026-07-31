@@ -147,28 +147,32 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         total_assets_value_current += cotVal * qtd;
       }
 
-      // total_dividends: soma de dividendos.total_liquid dos ativos da categoria
-      const { data: dividendos, error: dividendosError } = await supabase
-        .from("dividendos")
-        .select("code, total_liquid")
-        .in("code", codes);
+      // total_dividends: soma de dividendos.total_liquid dos ativos da categoria.
+      // Categoria "td" (Tesouro Direto) não paga dividendos — pula a query.
+      let total_dividends = 0;
+      if (category !== "td") {
+        const { data: dividendos, error: dividendosError } = await supabase
+          .from("dividendos")
+          .select("code, total_liquid")
+          .in("code", codes);
 
-      if (dividendosError) {
-        console.error(
-          `[${category}] Erro ao buscar dividendos:`,
-          dividendosError.message
+        if (dividendosError) {
+          console.error(
+            `[${category}] Erro ao buscar dividendos:`,
+            dividendosError.message
+          );
+          fail++;
+          if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+          continue;
+        }
+
+        const dividendosList: DividendRow[] = (dividendos ?? []) as DividendRow[];
+
+        total_dividends = dividendosList.reduce(
+          (sum: number, d: DividendRow) => sum + Number(d.total_liquid ?? 0),
+          0
         );
-        fail++;
-        if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
-        continue;
       }
-
-      const dividendosList: DividendRow[] = (dividendos ?? []) as DividendRow[];
-
-      const total_dividends = dividendosList.reduce(
-        (sum: number, d: DividendRow) => sum + Number(d.total_liquid ?? 0),
-        0
-      );
 
       const { error: upsertError } = await supabase
         .from("total_categories_cache")

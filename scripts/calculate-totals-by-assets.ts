@@ -16,30 +16,35 @@ type CatTotals = {
   total_assets_weight: number;
 };
 
+type DividendRow = { code: string; total_liquid: number };
+
 async function main(): Promise<{ total: number; ok: number; fail: number }> {
   const supabase = getSupabaseServer();
   const jobId = parseJobId();
 
-  const [ativosRes, cotacoesRes, aportesRes, catCacheRes] = await Promise.all([
+  const [ativosRes, cotacoesRes, aportesRes, catCacheRes, dividendosRes] = await Promise.all([
     supabase.from("ativos").select("code, type, weight"),
     supabase.from("cotacoes").select("code, value"),
     supabase.from("aportes").select("code, qtd, value_total, date_operation"),
     supabase
       .from("total_categories_cache")
       .select("category, total_assets_value_current, total_assets_weight"),
+    supabase.from("dividendos").select("code, total_liquid"),
   ]);
 
   if (
     ativosRes.error ||
     cotacoesRes.error ||
     aportesRes.error ||
-    catCacheRes.error
+    catCacheRes.error ||
+    dividendosRes.error
   ) {
     const msg =
       ativosRes.error?.message ??
       cotacoesRes.error?.message ??
       aportesRes.error?.message ??
       catCacheRes.error?.message ??
+      dividendosRes.error?.message ??
       "unknown";
     console.error("Error pre-loading data:", msg);
     if (jobId !== null) await finishJob(supabase, jobId, "error");
@@ -103,6 +108,12 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
     );
   }
 
+  const dividendosByCode = new Map<string, number>();
+  for (const d of (dividendosRes.data ?? []) as DividendRow[]) {
+    const current = dividendosByCode.get(d.code) ?? 0;
+    dividendosByCode.set(d.code, current + Number(d.total_liquid ?? 0));
+  }
+
   console.log(`Calculating totals for ${ativosList.length} asset(s)...`);
   let ok = 0;
   let fail = 0;
@@ -129,6 +140,9 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
           ultimo_aporte: null,
         } as AporteAgg);
       const cotacao = cotacoesByCode.get(code) ?? 0;
+
+      const total_dividends =
+        ativo.type === "td" ? 0 : dividendosByCode.get(code) ?? 0;
 
       const total_qtd = ap.total_qtd;
       const total_aportado = ap.total_aportado;
@@ -167,6 +181,7 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
             percentual_falta,
             primeiro_aporte: ap.primeiro_aporte,
             ultimo_aporte: ap.ultimo_aporte,
+            total_dividends,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "code" }
@@ -179,7 +194,8 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         ok++;
         console.log(
           `[${code}] OK — qtd=${total_qtd} cot=${cotacao} ` +
-            `atual=${montante_atual} objetivo=${montante_objetivo}`
+            `atual=${montante_atual} objetivo=${montante_objetivo} ` +
+            `dividendos=${total_dividends}`
         );
       }
     } catch (e) {
