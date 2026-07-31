@@ -62,22 +62,88 @@ No final da execução da etapa 2, salvar o plano em /dev/plans/cadastro-dividen
 
 
 
+Seguir com a etapa 3.
+Gerar o plano apenas para a etapa 3, conforme detalhado abaixo, não fazer nenhum outro tipo de análise.
+
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar o MCP context7 quando for necessário.
+Seguir o padrão de layout definido no arquivo DESIGN.md, conforme as outras telas.
 
 Etapa 3. Criar tela de consulta de dividendos.
 Criar uma tela de consulta de dividendos (usar como referência o formulário de pesquisa da tela de listagem de aportes).
 URL: /listagem-dividendos.
+Conteúdo da tabela "dividendos" e inner join com a tabela "ativos" on code = code (e ativo.type = "filtro Categoria do ativo", se o filtro for diferente de "todos").
 Nome da tela no menu de navegação (menu pai: Listar, submenu: Listar Dividendos).
-O formulário de pesquisa dever ter os seguintes campos, nessa ordem:
-  - Tipo do ativo (select - opções: todos, acao, fii, stock, reit - tabela categories) valor default: todos
-  - Data de pagamento (date picker - data inicial e final): default: primeiro ao último dia do mês anterior (o mês atual nunca vai ter registros)  
-  - Código do ativo (input text)
-  - Ordenar por (select - opções: código, data pagamento, quantidade, total líquido) valor default: data pagamento
-  - Ordenar sentido (select - opções: ascendente, descendente) valor default: descendente (desc)
-  - Resultados por página (select - opções: 10, 20, 50, 100) valor default: 20
 
 Seguindo o exemplo da tela de aportes, onde o formulário tem 3 linhas, com 4 filtros na primeira e segunda linha e na terceira linha tem 2 itens (um combo e um botão).
 Na listagem de dividendos, deve ter 3 linhas, com 3 filtros na primeira e segunda linha e 2 itens (um combo e um botão) na terceira linha.
-   - Linha 1: 3 filtros (Tipo do ativo, Data de pagamento De, Data de pagamento Até)
-   - Linha 2: 3 filtros (Código do ativo, Ordenar por, Ordenar sentido)
-   - Linha 3: 1 combo e um botão (Resultados por página (à esquerda), Buscar (à direita))
+O formulário de pesquisa dever ter os seguintes campos, nessa ordem:
+  - Linha 1: 3 filtros (Categoria do ativo, Data de pagamento De, Data de pagamento Até)
+    - Categoria do ativo (select - opções: todos, acao, fii, stock, reit - tabela categories (exceto "Tesouro Direto")) valor default: todos
+    - Data de pagamento (date picker - data inicial e final): default: primeiro ao último dia do mês anterior.  
+  - Linha 2: 3 filtros (Código do ativo, Ordenar por, Ordenar sentido)
+    - Código do ativo (input text)
+    - Ordenar por (select - opções: código, data pagamento, quantidade, total líquido) valor default: data pagamento
+    - Ordenar sentido (select - opções: ascendente, descendente) valor default: descendente (desc)
+  - Linha 3: 2 itens (Resultados por página (à esquerda), Buscar (à direita))
+    - Resultados por página (select - opções: 10, 20, 50, 100) valor default: 20
+    - Botão "Buscar" 
+
 A listagem vai ter paginação e mostrar as 4 colunas: código, data pagamento, quantidade, total líquido. (usar como referência a listagem da tela de listagem de aportes)
+
+No final da execução da etapa 3, salvar o plano em /dev/plans/listagem-dividendos.md
+
+
+Seguir com a etapa 3.1.
+Gerar o plano apenas para a etapa 3.1, conforme detalhado abaixo, não fazer nenhum outro tipo de análise.
+
+Etapa 3.1 Adicionar os botões de editar e excluir na listagem de dividendos.
+    - Editar: vai abrir um modal com o formulário de edição do dividendo (após salvar, atualizar a lista de dividendos para recalcular o total de dividendos).
+        - Campos editáveis: payment_date, quantity, total_liquid.
+    - Excluir: vai abrir um modal de confirmação, se confirmar, vai excluir o dividendo do banco de dados 
+        - Após excluir, atualizar a lista de dividendos, para atualizar o total de dividendos encontrados.
+        
+No final da execução da etapa 3.1, atualizar o plano em /dev/plans/listagem-dividendos.md
+
+
+
+
+
+------------------------------------------------------------------------------------
+
+tabelas "total_categories_cache" e "total_assets_cache".
+total_categories_cache.total_dividends
+total_assets_cache.total_dividends
+
+
+
+
+Atue como um dev nextjs senior
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar o MCP context7 quando for necessário.
+
+Etapas para alteração das CRONs de cache de totais por categoria e asset.
+
+Seguir com a etapa 1.
+Gerar o plano apenas para a etapa 1, conforme detalhado abaixo, não fazer nenhum outro tipo de análise.
+
+Etapa 1. Alterar CRON para calcular o total de dividendos na tabela "total_categories_cache".
+CRON: /scripts/calculate-totals-by-categories.ts
+
+Calcular o total de dividendos por categoria na tabela "total_categories_cache".
+total_categories_cache.total_dividends = SUM(dividendos.total_liquid) inner join ativos on dividendos.code = ativos.code and ativos.type = "categoria"
+
+No final da execução da etapa 1, atualizar o plano em /dev/plans/cron-totais-por-categoria/calculate-totals-by-categories.md
+
+
+
+Seguir com a etapa 2.
+Gerar o plano apenas para a etapa 2, conforme detalhado abaixo, não fazer nenhum outro tipo de análise.
+
+Etapa 2. Alterar CRON para calcular o total de dividendos na tabela "total_assets_cache".
+CRON: /scripts/calculate-totals-by-assets.ts
+
+Calcular o total de dividendos para cada ativo na tabela "total_assets_cache".
+total_assets_cache.total_dividends = SUM(dividendos.total_liquid) inner join ativos on dividendos.code = ativos.code
+
+No final da execução da etapa 2, atualizar o plano em /dev/plans/cron-totais-por-asset/calculate-totals-by-assets.md

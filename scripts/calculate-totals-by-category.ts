@@ -5,6 +5,7 @@ import { parseJobId, updateJobProgress, finishJob } from "./job-progress";
 type CategoryRow = { name: string };
 type AtivoRow = { code: string; weight: number };
 type AporteRow = { value_total: number };
+type DividendRow = { code: string; total_liquid: number };
 
 async function main(): Promise<{ total: number; ok: number; fail: number }> {
   const supabase = getSupabaseServer();
@@ -57,6 +58,7 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
               total_assets_value_aported: 0,
               total_assets_value_current: 0,
               total_assets_weight: 0,
+              total_dividends: 0,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "category" }
@@ -145,6 +147,29 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         total_assets_value_current += cotVal * qtd;
       }
 
+      // total_dividends: soma de dividendos.total_liquid dos ativos da categoria
+      const { data: dividendos, error: dividendosError } = await supabase
+        .from("dividendos")
+        .select("code, total_liquid")
+        .in("code", codes);
+
+      if (dividendosError) {
+        console.error(
+          `[${category}] Erro ao buscar dividendos:`,
+          dividendosError.message
+        );
+        fail++;
+        if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+        continue;
+      }
+
+      const dividendosList: DividendRow[] = (dividendos ?? []) as DividendRow[];
+
+      const total_dividends = dividendosList.reduce(
+        (sum: number, d: DividendRow) => sum + Number(d.total_liquid ?? 0),
+        0
+      );
+
       const { error: upsertError } = await supabase
         .from("total_categories_cache")
         .upsert(
@@ -153,6 +178,7 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
             total_assets_value_aported,
             total_assets_value_current,
             total_assets_weight,
+            total_dividends,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "category" }
@@ -165,7 +191,8 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         ok++;
         console.log(
           `[${category}] OK — aportado=${total_assets_value_aported} ` +
-            `atual=${total_assets_value_current} peso=${total_assets_weight}`
+            `atual=${total_assets_value_current} peso=${total_assets_weight} ` +
+            `dividendos=${total_dividends}`
         );
       }
     } catch (e) {

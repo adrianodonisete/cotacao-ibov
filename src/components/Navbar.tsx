@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
     children: [
       { href: '/listagem-ativos', label: 'Listar Ativos' },
       { href: '/listagem-aportes', label: 'Listar Aportes' },
+      { href: '/listagem-dividendos', label: 'Listar Dividendos' },
     ],
   },
   {
