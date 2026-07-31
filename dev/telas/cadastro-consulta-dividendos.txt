@@ -1,7 +1,9 @@
 Atue como um dev nextjs senior e especialista em supabase.
 Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
 Utilizar o MCP context7 quando for necessário.
+Seguir o padrão de layout definido no arquivo DESIGN.md, conforme as outras telas.
 
+Criar telas de cadastro e consulta de dividendos.
 Etapas:
 1. Gerar o script pra criar a tabela "dividendos" no banco de dados e os índices necessários.
     - id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -21,36 +23,61 @@ total_categories_cache.total_dividends
 total_assets_cache.total_dividends
 
 
-2. Criar tela de cadastro em lote de dividendos.
-Criar uma tela de cadastro em lote de dividendos, URL: /cadastro-dividendos.
-Nome da tela no menu de navegação (principal: Cadastro, submenu: Cadastrar Dividendos).
-No formulário deve ter um textarea name="list_dividendos" label="Lista de Dividendos" e o botão "cadastrar".
+
+
+A alteração foi feita no supabase, criei a nova tabela e os novos campos.
+Seguir com a etapa 2.
+Gerar o plano apenas para a etapa 2, conforme detalhado abaixo, não fazer nenhum outro tipo de análise.
+
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar o MCP context7 quando for necessário.
+Seguir o padrão de layout definido no arquivo DESIGN.md, conforme as outras telas.
+
+Etapa 2. Criar tela de cadastro em lote de dividendos.
+Criar uma tela de cadastro em lote de dividendos, URL: /cadastro-dividendos (usar como referência a tela de cadastro em lote de aportes).
+Nome da tela no menu de navegação (menu pai: Cadastro, submenu: Cadastrar Dividendos).
+No formulário deve ter um textarea name="list_dividendos", label e o botão "cadastrar".
+  na label, mostrar exemplos (usar como referência a tela de cadastro em lote de aportes): 
+  BBDC3;2026-07-31;100;890.00
+  ITUB3;2026-07-01;800;350,00
+
 Cada linha do textarea vai ser um dividendo diferente, cada coluna é uma informação do dividendo, separado por ponto e vírgula.
 As colunas são: 
     código (string), data pagamento (date formatos aceitos: dd/mm/yyyy e yyyy-mm-dd), quantidade (float), total líquido (float)
     
 Ao clicar no botão cadastrar, vai cadastrar os dividendos no banco de dados (tabela "dividendos").
+Não precisa ter tela de confirmação de cadastro, apenas cadastrar os dividendos e mostrar uma mensagem de sucesso ou erro.
     Usar TRIM em todos os campos para remover espaços em branco no início e no fim.
     Salvar o campo "code" em maiúsculo.
     Usuários brasileiros tendem a usar vírgula como separador decimal (1,5). O parser deve aceitar tanto . quanto , no campo quantidade e valor total.
     Ignorar linhas em branco e linhas que começam com "#".
     Ignorar linhas com mais ou menos de 4 colunas.
-    Ignorar linhas com valores nulos ou vazios ou inválidos (quantidade não numérica, valor total não numérico, data da operação não string, etc).
+    Ignorar linhas com valores nulos ou vazios ou inválidos (quantidade não numérica, valor total não numérico, data de pagamento não válida, etc).
     Não permitir duplicidades de dividendos (tem o UNIQUE dos campos code, quantity, payment_date, total_liquid na tabela "dividendos").
         Se encontrar duplicidade, ignorar a linha;
         Os dividendos não duplicados devem ser cadastrados normalmente.
     Aplicar o tratamento no conteúdo quando tiver evento "input", trocar tabs por ponto e vírgula (igual tem nas outras telas de cadastro).
 
+No final da execução da etapa 2, salvar o plano em /dev/plans/cadastro-dividendos.md
 
-3. Criar tela de consulta de dividendos.
-Criar uma tela de consulta de dividendos, URL: /listagem-dividendos.
-Nome da tela no menu de navegação (principal: Listar, submenu: Listar Dividendos).
-No formulário de pesquisa dever ter a opção de filtrar por:
+
+
+
+Etapa 3. Criar tela de consulta de dividendos.
+Criar uma tela de consulta de dividendos (usar como referência o formulário de pesquisa da tela de listagem de aportes).
+URL: /listagem-dividendos.
+Nome da tela no menu de navegação (menu pai: Listar, submenu: Listar Dividendos).
+O formulário de pesquisa dever ter os seguintes campos, nessa ordem:
   - Tipo do ativo (select - opções: todos, acao, fii, stock, reit - tabela categories) valor default: todos
+  - Data de pagamento (date picker - data inicial e final): default: primeiro ao último dia do mês anterior (o mês atual nunca vai ter registros)  
   - Código do ativo (input text)
-  - Data de pagamento (date picker - data inicial e final): default: primeiro dia do mês atual até hoje
+  - Ordenar por (select - opções: código, data pagamento, quantidade, total líquido) valor default: data pagamento
+  - Ordenar sentido (select - opções: ascendente, descendente) valor default: descendente (desc)
+  - Resultados por página (select - opções: 10, 20, 50, 100) valor default: 20
 
-
-4. Criar tela de detalhes de dividendo.
-Criar uma tela de detalhes de dividendo, URL: /detalhes-dividendo.
-Nome da tela no menu de navegação (principal: Detalhes, submenu: Detalhes de Dividendo).
+Seguindo o exemplo da tela de aportes, onde o formulário tem 3 linhas, com 4 filtros na primeira e segunda linha e na terceira linha tem 2 itens (um combo e um botão).
+Na listagem de dividendos, deve ter 3 linhas, com 3 filtros na primeira e segunda linha e 2 itens (um combo e um botão) na terceira linha.
+   - Linha 1: 3 filtros (Tipo do ativo, Data de pagamento De, Data de pagamento Até)
+   - Linha 2: 3 filtros (Código do ativo, Ordenar por, Ordenar sentido)
+   - Linha 3: 1 combo e um botão (Resultados por página (à esquerda), Buscar (à direita))
+A listagem vai ter paginação e mostrar as 4 colunas: código, data pagamento, quantidade, total líquido. (usar como referência a listagem da tela de listagem de aportes)

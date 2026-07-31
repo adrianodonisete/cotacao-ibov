@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
     children: [
       { href: '/cadastro-ativos', label: 'Cadastrar Ativos' },
       { href: '/cadastro-aportes', label: 'Cadastrar Aportes' },
+      { href: '/cadastro-dividendos', label: 'Cadastrar Dividendos' },
     ],
   },
   {

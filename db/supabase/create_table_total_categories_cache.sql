@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS total_categories_cache (
     total_assets_value_aported    NUMERIC(15, 6) NOT NULL,
     total_assets_value_current    NUMERIC(15, 6) NOT NULL,
     total_assets_weight           NUMERIC(10, 2) NOT NULL,
+    total_dividends               NUMERIC(15, 2) NULL,
     updated_at                    TIMESTAMP      NOT NULL DEFAULT NOW(),
     CONSTRAINT total_categories_cache_category_unique UNIQUE (category)
 );

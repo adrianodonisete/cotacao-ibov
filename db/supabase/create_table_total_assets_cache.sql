@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS total_assets_cache (
     percentual_falta            NUMERIC(10, 2) NOT NULL,
     primeiro_aporte             DATE,
     ultimo_aporte               DATE,
+    total_dividends             NUMERIC(15, 2) NULL,
     updated_at                  TIMESTAMPTZ    NOT NULL DEFAULT now(),
     CONSTRAINT total_assets_cache_code_unique UNIQUE (code)
 );
@@ -30,3 +31,4 @@ CREATE INDEX IF NOT EXISTS idx_total_assets_cache_category ON total_assets_cache
 
 -- Disable Row Level Security (personal project, accessed via service_role)
 ALTER TABLE total_assets_cache DISABLE ROW LEVEL SECURITY;
+
