@@ -114,6 +114,15 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
     dividendosByCode.set(d.code, current + Number(d.total_liquid ?? 0));
   }
 
+  const usdBrl = cotacoesByCode.get("USD_BRL") ?? 0;
+  if (usdBrl <= 0) {
+    console.warn(
+      "[calculate-totals-by-assets] cotacoes.value para USD_BRL não encontrada " +
+        "(execute `npm run sync-cotacoes-indices` antes). Ativos stock/reit " +
+        "poderão ter total_dividends incorreto (mantido em USD)."
+    );
+  }
+
   console.log(`Calculating totals for ${ativosList.length} asset(s)...`);
   let ok = 0;
   let fail = 0;
@@ -141,12 +150,18 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         } as AporteAgg);
       const cotacao = cotacoesByCode.get(code) ?? 0;
 
-      const total_dividends =
+      let total_dividends =
         ativo.type === "td" ? 0 : dividendosByCode.get(code) ?? 0;
+
+      if ((ativo.type === "stock" || ativo.type === "reit") && usdBrl > 0) {
+        total_dividends = total_dividends / usdBrl;
+      }
 
       const total_qtd = ap.total_qtd;
       const total_aportado = ap.total_aportado;
       const montante_atual = total_qtd * cotacao;
+      const dividend_yield =
+        montante_atual > 0 ? (total_dividends / montante_atual) * 100 : 0;
 
       const percentual_objetivo =
         peso > 0 && total_peso > 0 ? (peso / total_peso) * 100 : 0;
@@ -182,6 +197,7 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
             primeiro_aporte: ap.primeiro_aporte,
             ultimo_aporte: ap.ultimo_aporte,
             total_dividends,
+            dividend_yield,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "code" }
@@ -195,7 +211,7 @@ async function main(): Promise<{ total: number; ok: number; fail: number }> {
         console.log(
           `[${code}] OK — qtd=${total_qtd} cot=${cotacao} ` +
             `atual=${montante_atual} objetivo=${montante_objetivo} ` +
-            `dividendos=${total_dividends}`
+            `dividendos=${total_dividends} yield=${dividend_yield.toFixed(2)}%`
         );
       }
     } catch (e) {

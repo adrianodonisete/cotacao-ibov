@@ -343,3 +343,164 @@ Os valores têm que coincidir (tolerância `<= 0.01`, consistente com `NUMERIC(1
 SELECT code, total_dividends FROM total_assets_cache WHERE category_name = 'td';
 -- Esperado: todos com total_dividends = 0
 ```
+
+---
+
+## Etapa 3 — Conversão USD→BRL (stock/reit) + Dividend Yield
+
+> Aplicada em 05/08/2026.
+
+### Objetivo
+
+Para ativos `stock` e `reit`, os dividendos armazenados em `dividendos.total_liquid` estão em **USD** (originados de fontes de mercado americanas). O `cotacoes.value` para esses tickers também está em **USD** (Twelve Data, populado por `scripts/sync-cotacoes-us.ts:89`). Já `acao` e `fii` operam em **BRL** (brapi).
+
+A Etapa 3 faz duas coisas em `scripts/calculate-totals-by-assets.ts`:
+
+1. **Normaliza `total_dividends` para BRL**: para `stock`/`reit`, divide o somatório de `dividendos.total_liquid` (USD) por `cotacoes.value` onde `code = 'USD_BRL'` (populado por `scripts/sync-cotacoes-indices.ts:36-40`). Resultado gravado em `total_assets_cache.total_dividends` em BRL.
+2. **Calcula `dividend_yield` por ativo**: `total_dividends / montante_atual * 100`, gravado em `total_assets_cache.dividend_yield`.
+
+`td` permanece com `total_dividends = 0` e `dividend_yield = 0` (curto-circuito mantido da Etapa 2).
+
+### Mudanças em `scripts/calculate-totals-by-assets.ts`
+
+#### 1. Leitura de `usdBrl` (após montar `dividendosByCode`, ~linha 117)
+
+```ts
+const usdBrl = cotacoesByCode.get("USD_BRL") ?? 0;
+if (usdBrl <= 0) {
+  console.warn(
+    "[calculate-totals-by-assets] cotacoes.value para USD_BRL não encontrada " +
+      "(execute `npm run sync-cotacoes-indices` antes). Ativos stock/reit " +
+      "poderão ter total_dividends incorreto (mantido em USD)."
+  );
+}
+```
+
+Reaproveita o `cotacoesByCode` já construído na 2ª preload (linha 54-57) — **nenhuma query extra** ao banco. Quando `usdBrl <= 0`, exibe warning único no início e **não divide** (mantém o valor USD gravado em `total_dividends` para stock/reit, evitando perda de dados; o operador fica ciente via warning).
+
+#### 2. Conversão USD→BRL no loop (substitui linhas 144-145)
+
+```ts
+let total_dividends =
+  ativo.type === "td" ? 0 : dividendosByCode.get(code) ?? 0;
+
+if ((ativo.type === "stock" || ativo.type === "reit") && usdBrl > 0) {
+  total_dividends = total_dividends / usdBrl;
+}
+```
+
+`let` (em vez de `const`) porque há reatribuição condicional. `td` zera antes da verificação; `acao`/`fii` ficam intactos (BRL).
+
+#### 3. Cálculo de `dividend_yield` (após `montante_atual`)
+
+```ts
+const dividend_yield =
+  montante_atual > 0 ? (total_dividends / montante_atual) * 100 : 0;
+```
+
+Guard `montante_atual > 0` evita divisão por zero quando o ativo não tem cotação ou não tem qtd.
+
+#### 4. Payload do `upsert`
+
+Acrescentar `dividend_yield` ao objeto existente (junto com `total_dividends`):
+
+```ts
+{
+  ...,
+  total_dividends,
+  dividend_yield,
+  updated_at: new Date().toISOString(),
+}
+```
+
+#### 5. Log de sucesso
+
+```ts
+console.log(
+  `[${code}] OK — qtd=${total_qtd} cot=${cotacao} ` +
+    `atual=${montante_atual} objetivo=${montante_objetivo} ` +
+    `dividendos=${total_dividends} yield=${dividend_yield.toFixed(2)}%`
+);
+```
+
+### Tabela de comportamento por categoria
+
+| `ativo.type` | `total_dividends` (gravado) | `dividend_yield` (gravado) |
+|---|---|---|
+| `td` | `0` (curto-circuito) | `0` (pois `total_dividends = 0`) |
+| `acao` | `SUM(dividendos.total_liquid)` em BRL | `(BRL_div / BRL_montante) * 100` |
+| `fii` | `SUM(dividendos.total_liquid)` em BRL | `(BRL_div / BRL_montante) * 100` |
+| `stock` | `USD_sum / USD_BRL` (em BRL) | `(BRL_div / USD_montante) * 100` ⚠ |
+| `reit` | `USD_sum / USD_BRL` (em BRL) | `(BRL_div / USD_montante) * 100` ⚠ |
+
+> ⚠ **Decisão de produto**: para `stock`/`reit`, o `dividend_yield` mistura moedas (numerador BRL após Etapa 1, denominador USD), produzindo um % inflado pelo câmbio (≈×5). A fórmula é aplicada **literalmente** conforme spec. A UI identifica visualmente a moeda de cada ativo. O banco mantém a mistura como registrado.
+
+### Edge cases
+
+| Cenário | Comportamento |
+|---|---|
+| `ativo.type === "td"` | `total_dividends = 0`, `dividend_yield = 0` (curto-circuito em Tarefa 2) |
+| `ativo.type === "acao"` ou `"fii"` | `total_dividends` em BRL; `dividend_yield` calculado normalmente |
+| `ativo.type === "stock"` ou `"reit"` com `usdBrl > 0` | `total_dividends` convertido para BRL; `dividend_yield` calculado |
+| `ativo.type === "stock"` ou `"reit"` com `usdBrl <= 0` | Warning único no início; `total_dividends` mantido em USD (sem divisão); `dividend_yield` calculado com o valor USD |
+| Ativo sem `dividendos` | `total_dividends = 0`, `dividend_yield = 0` |
+| `montante_atual === 0` | `dividend_yield = 0` (guard div-by-zero) |
+| `dividendos.total_liquid` `NULL` | `Number(null ?? 0) = 0` no somatório do preload |
+| Múltiplas linhas de `dividendos` para o mesmo `code` | Somadas no `dividendosByCode` Map (equivale a `SUM`) |
+| Falha no preload de `cotacoes` | `process.exit(1)` antes do loop (consistente com demais preloads) |
+
+### Verificação
+
+1. **Lint**: `npm run lint` — sem novos warnings/errors em `scripts/calculate-totals-by-assets.ts`.
+2. **Execução local**: `npm run calculate-totals-by-assets` — observar logs incluindo `dividendos=<v>` e `yield=<v>%`. Para `td`, esperar `dividendos=0 yield=0.00%`. Para `stock`/`reit` com `usdBrl` carregado, esperar `dividendos` em BRL (≈ valor USD / cotação do dia).
+3. **Conferência cruzada no SQL do Supabase**:
+
+```sql
+-- 1. td sempre zerado
+SELECT code, total_dividends, dividend_yield
+FROM total_assets_cache
+WHERE category_name = 'td';
+-- Esperado: total_dividends = 0, dividend_yield = 0
+
+-- 2. BR (acao/fii): dividendos + yield em BRL
+SELECT a.code,
+       (SELECT COALESCE(SUM(d.total_liquid), 0) FROM dividendos d WHERE d.code = a.code)
+         AS sum_dividendos_brl,
+       ta.cotacao AS cotacao_montante,
+       ta.total_dividends AS gravado_div,
+       ta.dividend_yield  AS gravado_yield
+FROM ativos a
+LEFT JOIN total_assets_cache ta ON ta.code = a.code
+WHERE a.type IN ('acao', 'fii')
+ORDER BY a.code;
+-- Esperado: gravado_div = sum_dividendos_brl (tolerância <= 0.01)
+--           gravado_yield ≈ (gravado_div / (total_qtd * cotacao)) * 100
+
+-- 3. US (stock/reit): dividendos em BRL = sum USD / USD_BRL
+SELECT a.code,
+       (SELECT COALESCE(SUM(d.total_liquid), 0) FROM dividendos d WHERE d.code = a.code)
+         AS sum_dividendos_usd,
+       (SELECT value FROM cotacoes WHERE code = 'USD_BRL') AS usd_brl,
+       ta.total_dividends AS gravado_div,
+       ta.dividend_yield  AS gravado_yield
+FROM ativos a
+LEFT JOIN total_assets_cache ta ON ta.code = a.code
+WHERE a.type IN ('stock', 'reit')
+ORDER BY a.code;
+-- Esperado: gravado_div ≈ sum_dividendos_usd / usd_brl (tolerância <= 0.01)
+--           gravado_yield ≈ (gravado_div / (total_qtd * cotacao)) * 100 (mistura BRL/USD — conhecido)
+```
+
+### Equivalência SQL
+
+- `total_dividends` para `acao`/`fii`: `SUM(dividendos.total_liquid) WHERE ativos.type IN ('acao','fii')` — em BRL.
+- `total_dividends` para `stock`/`reit`: `SUM(dividendos.total_liquid) / (SELECT value FROM cotacoes WHERE code = 'USD_BRL') WHERE ativos.type IN ('stock','reit')` — convertido para BRL.
+- `dividend_yield`: `(total_dividends / montante_atual) * 100` onde `montante_atual = total_qtd * cotacao`.
+
+### Notas / dependências
+
+- **Dependência operacional**: `cotacoes.value` para `USD_BRL` precisa estar populada (via `npm run sync-cotacoes-indices`) antes de rodar `calculate-totals-by-assets`. Sem isso, o warning é emitido e os dividendos de `stock`/`reit` ficam em USD (yield também afetado).
+- **Schema**: as colunas `total_dividends NUMERIC(15,2) NULL` e `dividend_yield NUMERIC(15,2) NULL` já existem em `db/supabase/create_table_total_assets_cache.sql:23-24`. **Nenhuma migração SQL** necessária para esta etapa.
+- **Sem novos arquivos / novos triggers / novos types**. Mudança contida em `scripts/calculate-totals-by-assets.ts`.
+- **API consumer**: `src/app/api/total-assets/route.ts:33-37` já usa `.select("*")`, então `total_dividends` e `dividend_yield` retornam no payload JSON. Os types TypeScript em `src/types/total-asset.ts` ainda não declaram esses campos (a UI nem o consumer atual os tipa) — fora do escopo desta etapa (YAGNI).
+- **Idempotência**: o `upsert onConflict: "code"` continua válido; basta rerodar para atualizar ambos os campos.

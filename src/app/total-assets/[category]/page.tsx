@@ -168,6 +168,22 @@ const COLUMNS: ColumnDef[] = [
     valueClass: 'text-body',
   },
   {
+    field: 'total_dividends',
+    label: 'R$ Dividendos',
+    align: 'right',
+    format: (row) =>
+      row.total_dividends == null ? '—' : formatCurrencyBRL(row.total_dividends),
+    valueClass: 'text-body',
+  },
+  {
+    field: 'dividend_yield',
+    label: '% Yield',
+    align: 'right',
+    format: (row) =>
+      row.dividend_yield == null ? '—' : formatPercent(row.dividend_yield),
+    valueClass: 'text-body',
+  },
+  {
     field: 'primeiro_aporte',
     label: 'Primeiro Aporte',
     align: 'center',

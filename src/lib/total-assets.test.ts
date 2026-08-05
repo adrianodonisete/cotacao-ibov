@@ -22,6 +22,8 @@ const baseAsset: TotalAssetWithInfo = {
   percentual_lucro: 25,
   montante_falta: 0,
   percentual_falta: 0,
+  total_dividends: 0,
+  dividend_yield: 0,
   primeiro_aporte: null,
   ultimo_aporte: null,
   info: "",
@@ -111,4 +113,24 @@ test("sortTotalAssets não muta o array original", () => {
   const original = [...rows];
   sortTotalAssets(rows, "code", "asc");
   assert.deepEqual(rows, original);
+});
+
+test("sortTotalAssets DESC por total_dividends (número, com null)", () => {
+  const rows: TotalAssetWithInfo[] = [
+    { ...baseAsset, code: "A", total_dividends: null },
+    { ...baseAsset, code: "B", total_dividends: 50 },
+    { ...baseAsset, code: "C", total_dividends: 20 },
+  ];
+  const sorted = sortTotalAssets(rows, "total_dividends", "desc").map((r) => r.code);
+  assert.deepEqual(sorted, ["B", "C", "A"]);
+});
+
+test("sortTotalAssets ASC por dividend_yield (número)", () => {
+  const rows: TotalAssetWithInfo[] = [
+    { ...baseAsset, code: "A", dividend_yield: 12.5 },
+    { ...baseAsset, code: "B", dividend_yield: 3.21 },
+    { ...baseAsset, code: "C", dividend_yield: 7.8 },
+  ];
+  const sorted = sortTotalAssets(rows, "dividend_yield", "asc").map((r) => r.code);
+  assert.deepEqual(sorted, ["B", "C", "A"]);
 });

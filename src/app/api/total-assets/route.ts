@@ -98,6 +98,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<TotalAsset
       percentual_lucro: Number(row.percentual_lucro),
       montante_falta: Number(row.montante_falta),
       percentual_falta: Number(row.percentual_falta),
+      total_dividends: row.total_dividends != null ? Number(row.total_dividends) : null,
+      dividend_yield: row.dividend_yield != null ? Number(row.dividend_yield) : null,
       primeiro_aporte: row.primeiro_aporte,
       ultimo_aporte: row.ultimo_aporte,
       info: ativo?.info ?? "",

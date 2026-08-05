@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS total_assets_cache (
     primeiro_aporte             DATE,
     ultimo_aporte               DATE,
     total_dividends             NUMERIC(15, 2) NULL,
+    dividend_yield              NUMERIC(15, 2) NULL,
     updated_at                  TIMESTAMPTZ    NOT NULL DEFAULT now(),
     CONSTRAINT total_assets_cache_code_unique UNIQUE (code)
 );

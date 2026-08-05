@@ -149,3 +149,35 @@ Calcular o total de dividendos para cada ativo na tabela "total_assets_cache".
 total_assets_cache.total_dividends = SUM(dividendos.total_liquid) inner join ativos on dividendos.code = ativos.code and ativos.type <> "td"
 
 No final da execução da etapa 2, atualizar o plano em /dev/plans/cron-totais-por-asset/create-cron-totais-por-assets.md
+
+
+
+
+
+Atue como um dev nextjs senior
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar os MCPs context7 e Mem0 quando for necessário.
+
+Preciso calcular o dividend yield para cada ativo na tabela "total_assets_cache" e ajustar o calculo do "total_dividends" para os ativos das categorias "stock" e "reit".
+
+Alterar a CRON para calcular o dividend yield na tabela "total_assets_cache".
+CRON: /scripts/calculate-totals-by-assets.ts
+
+Não precisa calcular o total de dividendos e o dividend yield para os ativos da categoria "Tesouro Direto" (ativos.type = "td").
+
+Etapa 1. Ajustar o calculo do "total_dividends" para os ativos das categorias "stock" e "reit".
+Se o ativo for da categoria "stock" ou "reit", após calcular o "total_dividends", 
+pegar esse valor e dividi-lo pela cotação do dólar "tabela: cotacoes e code=USD_BRL, campo: value", e aí salvar o resultado no campo "total_dividends".
+
+Etapa 2. Calcular o "dividend_yield" para cada ativo na tabela "total_assets_cache".
+total_assets_cache.dividend_yield = (total_assets_cache.total_dividends / total_assets_cache.montante_atual) * 100
+
+No final da execução, atualizar o plano em /dev/plans/cron-totais-por-asset/create-cron-totais-por-assets.md
+
+
+Etapa 3. Adicionar as colunas "dividend_yield" e "total_dividends" na tela de totais por acao/fii
+URLs: /total-assets/acao e /total-assets/fii
+
+As novas colunas "R$ Dividendos"  (total_dividends) e "% Yield" (dividend_yield) devem ficar antes da coluna "Primeiro Aporte".
+
+No final da execução, salvar o plano em /dev/plans/tela-totais-assets/add-colunas-dividendos.md

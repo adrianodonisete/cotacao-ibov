@@ -13,6 +13,8 @@ export interface TotalAsset {
   percentual_lucro: number;
   montante_falta: number;
   percentual_falta: number;
+  total_dividends: number | null;
+  dividend_yield: number | null;
   primeiro_aporte: string | null;
   ultimo_aporte: string | null;
 }
