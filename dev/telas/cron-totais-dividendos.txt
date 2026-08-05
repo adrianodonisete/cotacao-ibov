@@ -1,0 +1,50 @@
+
+Atue como um dev nextjs senior
+Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
+Utilizar os MCPs context7 e Mem0 quando for necessário.
+
+Preciso de uma CRON para calcular o total de dividendos por período e salvar na tabela "total_dividends_cache".
+CRON: /scripts/calculate-totals-by-dividends.ts
+
+Tabela: total_dividends_cache
+Campos: chave, opcao, periodo, total_dividends, updated_at
+
+Preciso calcular o total de dividendos para cada categoria (tabela: categories) e para cada ativo (tabela: ativos).
+A categoria ou ativo vão ser salvos no campo "total_dividends_cache.chave".
+
+Deve ter o total mensal e anual.
+Essa informação vai ser salva no campo "total_dividends_cache.opcao".
+
+A idenficação do período vai ser salva no campo "total_dividends_cache.periodo".
+
+Exemplo
+Ativos: PETR3, GGRC11, NOBL, ITUB3, BBSE3, etc (todos os ativos da tabela ativos, exceto os ativos da categoria "td" Tesouro Direto)
+Categorias: "acao", "fii", "stock" e "reit"  (não calcular para a categoria "td" Tesouro Direto)
+Periodo: 2026-01-01 a 2026-08-31	(na CRON, o périodo vai ser do primeiro até o último mês com registro na tabela dividendos)
+
+Deve ter um registro para cada mês do período, pra cada ativo e categoria.
+Abaixo o modelo de registro para o mês de janeiro de 2026:
+  total_dividends_cache.chave = PETR3 (GGRC11, "acao", "fii")
+  total_dividends_cache.opcao = mensal
+  total_dividends_cache.periodo = 2026-01 (o mês de janeiro de 2026)
+  total_dividends_cache.total_dividends = 1000 (total de dividendos do ativo (ou se for categoria: de todos ativos da categoria) no mês de janeiro de 2026 na tabela dividendos)
+
+Deve ter um registro para cada ano do período.
+Abaixo o modelo de registro para o ano de 2026:
+  total_dividends_cache.chave = PETR3 (GGRC11, "acao", "fii")
+  total_dividends_cache.opcao = anual
+  total_dividends_cache.periodo = 2026 (o ano de 2026)
+  total_dividends_cache.total_dividends = 10000 (total de dividendos do ativo (ou se for categoria: de todos ativos da categoria) no ano de 2026 na tabela dividendos)
+
+Se o ativo for da categoria "stock" ou "reit", após calcular o "total_dividends", 
+pegar esse valor e dividi-lo pela cotação do dólar "tabela: cotacoes e code=USD_BRL, campo: value", e aí salvar o resultado no campo "total_dividends".
+Se não tiver cotação do dólar, manter o valor original de "total_dividends".
+
+Percorrer mês a mês e ano a ano, calculando o total de dividendos para cada ativo e categoria.
+Se no mês/ano que estiver calculando não tiver registro na tabela dividendos, não salvar o registro no total_dividends_cache.
+Se já existir registro da mesma "chave", "opcao" e "periodo", não precisa calcular novamente, vai para o próximo mês/ano.
+Ou seja, vai calcular somente se não existir registro da mesma "chave", "opcao" e "periodo".
+Exceto para o mês/ano atual, pra esses, vai calcular sempre, mesmo se já existir registro da mesma "chave", "opcao" e "periodo" (usar upsert).
+
+Na primeira vez que rodar a CRON, vai calcular todos os registros.
+Nas próximas vezes, vai calcular somente os registros que não existem.
