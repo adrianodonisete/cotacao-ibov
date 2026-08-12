@@ -7,7 +7,7 @@ export interface DividendoInput {
 
 export interface DividendoParseResult {
   rows: DividendoInput[];
-  batchDuplicates: number;
+  duplicityCount: number;
   ignoredCount: number;
 }
 
@@ -29,7 +29,7 @@ function parseNumber(raw: string): number | null {
 export function parseDividendosText(text: string): DividendoParseResult {
   const rows: DividendoInput[] = [];
   const seenKeys = new Set<string>();
-  let batchDuplicates = 0;
+  let duplicityCount = 0;
   let ignoredCount = 0;
 
   for (const line of text.split("\n")) {
@@ -54,12 +54,12 @@ export function parseDividendosText(text: string): DividendoParseResult {
 
     const key = `${code}|${quantity}|${payment_date}|${total_liquid}`;
     if (seenKeys.has(key)) {
-      batchDuplicates++;
+      duplicityCount++;
       continue;
     }
     seenKeys.add(key);
     rows.push({ code, payment_date, quantity, total_liquid });
   }
 
-  return { rows, batchDuplicates, ignoredCount };
+  return { rows, duplicityCount, ignoredCount };
 }

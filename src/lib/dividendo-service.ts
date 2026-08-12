@@ -9,6 +9,7 @@ interface SupabaseQuery<T> {
   insert(rows: T[]): SupabaseQuery<T>;
   in(col: string, values: string[]): SupabaseQuery<T>;
   eq(col: string, value: string): SupabaseQuery<T>;
+  limit(n: number): SupabaseQuery<T>;
   then<U>(resolve: (value: FetchResult) => U): Promise<U>;
 }
 
@@ -21,39 +22,40 @@ export interface DividendoBatchResult {
   dbDuplicates: number;
 }
 
+async function rowExists(
+  supabase: ProcessSupabase | SupabaseClient,
+  row: DividendoInput
+): Promise<boolean> {
+  const { data, error } = (await supabase
+    .from("dividendos")
+    .select("id")
+    .eq("code", row.code)
+    .eq("payment_date", row.payment_date)
+    .eq("quantity", row.quantity)
+    .eq("total_liquid", row.total_liquid)
+    .limit(1)) as FetchResult;
+
+  if (error) {
+    throw new Error(error.message ?? "Erro ao verificar dividendos no banco.");
+  }
+
+  return Array.isArray(data) && data.length > 0;
+}
+
 export async function processDividendosBatch(
   supabase: ProcessSupabase | SupabaseClient,
   rows: DividendoInput[]
 ): Promise<DividendoBatchResult> {
-  const codes = [...new Set(rows.map((r) => r.code))];
+  const toInsert: DividendoInput[] = [];
+  let dbDuplicates = 0;
 
-  const { data: existing, error: fetchError } = (await supabase
-    .from("dividendos")
-    .select("code,quantity,payment_date,total_liquid")
-    .in("code", codes)) as FetchResult;
-
-  if (fetchError) {
-    throw new Error(fetchError.message ?? "Erro ao verificar dividendos no banco.");
+  for (const row of rows) {
+    if (await rowExists(supabase, row)) {
+      dbDuplicates++;
+      continue;
+    }
+    toInsert.push(row);
   }
-
-  type ExistingRow = {
-    code: string;
-    quantity: number | string;
-    payment_date: string;
-    total_liquid: number | string;
-  };
-
-  const existingKeys = new Set(
-    ((existing ?? []) as ExistingRow[]).map(
-      (r) => `${r.code}|${Number(r.quantity)}|${r.payment_date}|${Number(r.total_liquid)}`
-    )
-  );
-
-  const toInsert = rows.filter(
-    (r) => !existingKeys.has(`${r.code}|${r.quantity}|${r.payment_date}|${r.total_liquid}`)
-  );
-
-  const dbDuplicates = rows.length - toInsert.length;
 
   if (toInsert.length === 0) {
     return { inserted: 0, dbDuplicates };

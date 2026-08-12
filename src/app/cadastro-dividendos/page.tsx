@@ -10,8 +10,8 @@ import { parseDividendosText } from '@/lib/dividendo-parser';
 interface SubmitResult {
   inserted: number;
   dbDuplicates: number;
-  batchDuplicates: number;
   ignoredCount: number;
+  duplicityCount: number;
 }
 
 export default function CadastroDividendos() {
@@ -25,7 +25,7 @@ export default function CadastroDividendos() {
     setError(null);
     setSuccess(null);
 
-    const { rows, batchDuplicates, ignoredCount } = parseDividendosText(rawText);
+    const { rows, duplicityCount, ignoredCount } = parseDividendosText(rawText);
 
     if (rows.length === 0) {
       setError(
@@ -42,7 +42,7 @@ export default function CadastroDividendos() {
         body: JSON.stringify({ dividendos: rows }),
       });
       const data = (await res.json()) as
-        | SubmitResult
+        | { inserted: number; dbDuplicates: number }
         | { error: string };
 
       if (!res.ok || 'error' in data) {
@@ -51,7 +51,12 @@ export default function CadastroDividendos() {
         return;
       }
 
-      setSuccess({ ...data, batchDuplicates, ignoredCount });
+      setSuccess({
+        inserted: data.inserted,
+        dbDuplicates: data.dbDuplicates,
+        ignoredCount,
+        duplicityCount: duplicityCount + data.dbDuplicates,
+      });
       setRawText('');
     } catch {
       setError('Falha na comunicação com o servidor.');
@@ -92,14 +97,11 @@ export default function CadastroDividendos() {
             <StatusBanner tone="success">
               {success.inserted} dividendo{success.inserted !== 1 ? 's' : ''} cadastrado
               {success.inserted !== 1 ? 's' : ''}
-              {success.ignoredCount > 0 || success.batchDuplicates > 0 || success.dbDuplicates > 0
+              {success.ignoredCount > 0
                 ? ` · ${success.ignoredCount} linha${success.ignoredCount !== 1 ? 's' : ''} ignorada${success.ignoredCount !== 1 ? 's' : ''}`
                 : ''}
-              {success.batchDuplicates > 0
-                ? ` · ${success.batchDuplicates} duplicata${success.batchDuplicates !== 1 ? 's' : ''} no lote`
-                : ''}
-              {success.dbDuplicates > 0
-                ? ` · ${success.dbDuplicates} duplicata${success.dbDuplicates !== 1 ? 's' : ''} no banco`
+              {success.duplicityCount > 0
+                ? ` · ${success.duplicityCount} duplicidade${success.duplicityCount !== 1 ? 's' : ''}`
                 : ''}
             </StatusBanner>
           </div>

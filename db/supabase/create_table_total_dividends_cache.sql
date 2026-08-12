@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS total_dividends_cache (
     periodo                     VARCHAR(30)    NOT NULL,
     total_dividends             NUMERIC(15, 2) NOT NULL,
     updated_at                  TIMESTAMPTZ    NOT NULL DEFAULT now(),
-    CONSTRAINT total_dividends_cache_chave_option_unique UNIQUE (chave,opcao)
+    CONSTRAINT total_dividends_cache_chave_option_unique UNIQUE (chave,opcao,periodo)
 );
 
 -- Index on chave (covered by UNIQUE) plus a composite index for category lookups
-CREATE INDEX IF NOT EXISTS idx_chave_option ON total_dividends_cache (chave,opcao);
+CREATE INDEX IF NOT EXISTS idx_chave_option ON total_dividends_cache (chave,opcao,periodo);

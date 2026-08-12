@@ -5,13 +5,14 @@ import { processDividendosBatch, type ProcessSupabase } from "./dividendo-servic
 
 interface Recorder {
   insertPayloads: DividendoInput[][];
+  selectCalls: string[];
 }
 
 function makeStub(handlers: {
   select: (cols: string) => { data: unknown; error: null };
   insert: (rows: DividendoInput[]) => { data: { id: number }[]; error: null };
 }) {
-  const recorder: Recorder = { insertPayloads: [] };
+  const recorder: Recorder = { insertPayloads: [], selectCalls: [] };
   let pendingInsertRows: DividendoInput[] = [];
   let pendingSelectCols: string | null = null;
 
@@ -30,6 +31,9 @@ function makeStub(handlers: {
     eq() {
       return chain;
     },
+    limit() {
+      return chain;
+    },
     then<TResolve>(
       resolve: (v: { data: unknown; error: unknown }) => TResolve
     ): Promise<TResolve> {
@@ -42,6 +46,7 @@ function makeStub(handlers: {
         return Promise.resolve(resolve({ data: r.data, error: r.error }));
       }
       const cols = pendingSelectCols ?? "";
+      recorder.selectCalls.push(cols);
       pendingSelectCols = null;
       const r = handlers.select(cols);
       return Promise.resolve(resolve({ data: r.data, error: r.error }));
@@ -80,19 +85,80 @@ test("processDividendosBatch insere todas as linhas sem duplicata", async () => 
   assert.equal(result.dbDuplicates, 0);
 });
 
-test("processDividendosBatch filtra duplicatas ja existentes no banco", async () => {
+test("processDividendosBatch filtra duplicata ja existente no banco", async () => {
   const { supabase, recorder } = makeStub({
-    select: () => ({
-      data: [
-        {
-          code: "BBDC3",
-          quantity: 100,
-          payment_date: "2026-07-31",
-          total_liquid: 890,
-        },
-      ],
+    select: () => ({ data: [{ id: 1 }], error: null }),
+    insert: () => ({ data: [], error: null }),
+  });
+
+  const result = await processDividendosBatch(supabase, [baseRow]);
+
+  assert.equal(recorder.insertPayloads.length, 0);
+  assert.equal(result.inserted, 0);
+  assert.equal(result.dbDuplicates, 1);
+});
+
+test("processDividendosBatch faz uma query de verificacao por linha com .limit(1)", async () => {
+  let queryCount = 0;
+  const { supabase, recorder } = makeStub({
+    select: () => {
+      queryCount += 1;
+      return { data: [], error: null };
+    },
+    insert: () => ({ data: [], error: null }),
+  });
+
+  const rows = [
+    baseRow,
+    { ...baseRow, payment_date: "2026-08-01" },
+    { ...baseRow, payment_date: "2026-09-01" },
+  ];
+
+  await processDividendosBatch(supabase, rows);
+
+  assert.equal(queryCount, 3);
+  assert.equal(recorder.selectCalls.every((c) => c === "id"), true);
+  assert.equal(recorder.insertPayloads.length, 1);
+  assert.equal(recorder.insertPayloads[0].length, 3);
+});
+
+test("processDividendosBatch mistura duplicatas e insercoes na mesma chamada", async () => {
+  const input = [
+    baseRow,
+    { ...baseRow, payment_date: "2026-08-01" },
+    { ...baseRow, payment_date: "2026-09-01" },
+  ];
+  const callIndex = { value: 0 };
+  const duplicatesAt = new Set([1]);
+
+  const { supabase, recorder } = makeStub({
+    select: () => {
+      const i = callIndex.value;
+      callIndex.value += 1;
+      return { data: duplicatesAt.has(i) ? [{ id: 1 }] : [], error: null };
+    },
+    insert: (rowsToInsert) => ({
+      data: rowsToInsert.map((_, i) => ({ id: i + 1 })),
       error: null,
     }),
+  });
+
+  const result = await processDividendosBatch(supabase, [
+    input[0],
+    input[1],
+    input[0],
+    input[2],
+  ]);
+
+  assert.equal(result.inserted, 3);
+  assert.equal(result.dbDuplicates, 1);
+  assert.equal(recorder.insertPayloads.length, 1);
+  assert.equal(recorder.insertPayloads[0].length, 3);
+});
+
+test("processDividendosBatch nao faz insert quando todas as linhas sao duplicatas", async () => {
+  const { supabase, recorder } = makeStub({
+    select: () => ({ data: [{ id: 1 }], error: null }),
     insert: () => ({ data: [], error: null }),
   });
 
@@ -111,6 +177,7 @@ test("processDividendosBatch propaga erro do insert", async () => {
         insert: () => chain,
         in: () => chain,
         eq: () => chain,
+        limit: () => chain,
         then<TResolve>(
           resolve: (v: { data: unknown; error: { message: string } }) => TResolve
         ): Promise<TResolve> {
@@ -122,4 +189,39 @@ test("processDividendosBatch propaga erro do insert", async () => {
   };
 
   await assert.rejects(async () => processDividendosBatch(supabase, [baseRow]), /boom/);
+});
+
+test("processDividendosBatch propaga erro da verificacao de duplicidade", async () => {
+  const supabase: ProcessSupabase = {
+    from() {
+      let pendingInsertRows: DividendoInput[] = [];
+      const chain = {
+        select: () => chain,
+        insert: (rows: DividendoInput[]) => {
+          pendingInsertRows = rows;
+          return chain;
+        },
+        in: () => chain,
+        eq: () => chain,
+        limit: () => chain,
+        then<TResolve>(
+          resolve: (v: { data: unknown; error: { message: string } | null }) => TResolve
+        ): Promise<TResolve> {
+          if (pendingInsertRows.length > 0) {
+            pendingInsertRows = [];
+            return Promise.resolve(resolve({ data: [], error: null }));
+          }
+          return Promise.resolve(
+            resolve({ data: null, error: { message: "verificacao falhou" } })
+          );
+        },
+      } as const;
+      return chain as unknown as ReturnType<ProcessSupabase["from"]>;
+    },
+  };
+
+  await assert.rejects(
+    async () => processDividendosBatch(supabase, [baseRow]),
+    /verificacao falhou/
+  );
 });

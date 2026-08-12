@@ -1,13 +1,13 @@
-
-Atue como um dev nextjs senior
+Atue como um dev nextjs senior com experiência em Supabase.
 Consulte o arquivo AGENTS.md para obter informações sobre o projeto e as tecnologias utilizadas.
 Utilizar os MCPs context7 e Mem0 quando for necessário.
 
 Preciso de uma CRON para calcular o total de dividendos por período e salvar na tabela "total_dividends_cache".
 CRON: /scripts/calculate-totals-by-dividends.ts
 
-Tabela: total_dividends_cache
+Tabela: total_dividends_cache  (já criada no Supabase)
 Campos: chave, opcao, periodo, total_dividends, updated_at
+Índice único: chave, opcao, periodo
 
 Preciso calcular o total de dividendos para cada categoria (tabela: categories) e para cada ativo (tabela: ativos).
 A categoria ou ativo vão ser salvos no campo "total_dividends_cache.chave".
@@ -46,5 +46,4 @@ Se já existir registro da mesma "chave", "opcao" e "periodo", não precisa calc
 Ou seja, vai calcular somente se não existir registro da mesma "chave", "opcao" e "periodo".
 Exceto para o mês/ano atual, pra esses, vai calcular sempre, mesmo se já existir registro da mesma "chave", "opcao" e "periodo" (usar upsert).
 
-Na primeira vez que rodar a CRON, vai calcular todos os registros.
-Nas próximas vezes, vai calcular somente os registros que não existem.
+No final da execução, salvar o plano em /dev/plans/dividendos/cron-totals-por-dividends.md

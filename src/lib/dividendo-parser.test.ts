@@ -7,7 +7,7 @@ test("parseDividendosText ignora linhas vazias e comentarios com #", () => {
     "\nBBDC3;2026-07-31;100;890.00\n   \n# exemplo de comentario\nITUB3;2026-07-01;800;350,00\n"
   );
   assert.equal(result.ignoredCount, 0);
-  assert.equal(result.batchDuplicates, 0);
+  assert.equal(result.duplicityCount, 0);
   assert.equal(result.rows.length, 2);
   assert.equal(result.rows[0].code, "BBDC3");
   assert.equal(result.rows[1].code, "ITUB3");
@@ -59,7 +59,7 @@ test("parseDividendosText ignora segunda ocorrencia no mesmo lote", () => {
     ["BBDC3;2026-07-31;100;890.00", "BBDC3;2026-07-31;100;890.00", "BBDC3;2026-07-31;100;890.00"].join("\n")
   );
   assert.equal(result.rows.length, 1);
-  assert.equal(result.batchDuplicates, 2);
+  assert.equal(result.duplicityCount, 2);
   assert.equal(result.ignoredCount, 0);
 });
 
@@ -72,6 +72,6 @@ test("parseDividendosText ignora codigo vazio", () => {
 test("parseDividendosText entrada vazia retorna zero rows", () => {
   const result = parseDividendosText("");
   assert.equal(result.rows.length, 0);
-  assert.equal(result.batchDuplicates, 0);
+  assert.equal(result.duplicityCount, 0);
   assert.equal(result.ignoredCount, 0);
 });
