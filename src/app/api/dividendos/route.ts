@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { inserted, dbDuplicates } = await processDividendosBatch(supabase, dividendos);
-    return NextResponse.json({ inserted, dbDuplicates });
+    const { inserted, dbDuplicates, errorCount } = await processDividendosBatch(supabase, dividendos);
+    return NextResponse.json({ inserted, dbDuplicates, errorCount });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao cadastrar dividendos.";
     return NextResponse.json({ error: message }, { status: 500 });

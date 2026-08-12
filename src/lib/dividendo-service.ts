@@ -20,6 +20,7 @@ export interface ProcessSupabase {
 export interface DividendoBatchResult {
   inserted: number;
   dbDuplicates: number;
+  errorCount: number;
 }
 
 async function rowExists(
@@ -57,21 +58,21 @@ export async function processDividendosBatch(
     toInsert.push(row);
   }
 
-  if (toInsert.length === 0) {
-    return { inserted: 0, dbDuplicates };
+  let inserted = 0;
+  let errorCount = 0;
+
+  for (const row of toInsert) {
+    const { error } = (await supabase
+      .from("dividendos")
+      .insert([row])
+      .select()) as FetchResult;
+
+    if (error) {
+      errorCount++;
+      continue;
+    }
+    inserted++;
   }
 
-  const { data: insertedData, error: insertError } = (await supabase
-    .from("dividendos")
-    .insert(toInsert)
-    .select()) as FetchResult;
-
-  if (insertError) {
-    throw new Error(insertError.message ?? "Erro ao inserir dividendos.");
-  }
-
-  return {
-    inserted: Array.isArray(insertedData) ? insertedData.length : 0,
-    dbDuplicates,
-  };
+  return { inserted, dbDuplicates, errorCount };
 }

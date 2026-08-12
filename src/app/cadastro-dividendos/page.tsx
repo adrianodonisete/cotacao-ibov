@@ -10,6 +10,7 @@ import { parseDividendosText } from '@/lib/dividendo-parser';
 interface SubmitResult {
   inserted: number;
   dbDuplicates: number;
+  errorCount: number;
   ignoredCount: number;
   duplicityCount: number;
 }
@@ -42,7 +43,7 @@ export default function CadastroDividendos() {
         body: JSON.stringify({ dividendos: rows }),
       });
       const data = (await res.json()) as
-        | { inserted: number; dbDuplicates: number }
+        | { inserted: number; dbDuplicates: number; errorCount: number }
         | { error: string };
 
       if (!res.ok || 'error' in data) {
@@ -54,6 +55,7 @@ export default function CadastroDividendos() {
       setSuccess({
         inserted: data.inserted,
         dbDuplicates: data.dbDuplicates,
+        errorCount: data.errorCount,
         ignoredCount,
         duplicityCount: duplicityCount + data.dbDuplicates,
       });
@@ -102,6 +104,9 @@ export default function CadastroDividendos() {
                 : ''}
               {success.duplicityCount > 0
                 ? ` · ${success.duplicityCount} duplicidade${success.duplicityCount !== 1 ? 's' : ''}`
+                : ''}
+              {success.errorCount > 0
+                ? ` · ${success.errorCount} erro${success.errorCount !== 1 ? 's' : ''} no insert`
                 : ''}
             </StatusBanner>
           </div>
