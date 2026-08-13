@@ -16,6 +16,7 @@ test("parseDividendosText ignora linhas vazias e comentarios com #", () => {
   assert.equal(result.outcomes.length, 4);
   assert.equal(result.outcomes[0].status, "vazio");
   assert.equal(result.outcomes[0].line_number, 1);
+  assert.equal(result.outcomes[0].detalhe_erro, "");
   assert.equal(result.outcomes[1].status, "vazio");
   assert.equal(result.outcomes[1].line_number, 3);
   assert.equal(result.outcomes[2].status, "comentario");
@@ -40,6 +41,7 @@ test("parseDividendosText ignora linhas com != 4 colunas", () => {
   assert.equal(result.outcomes[0].status, "ignorado");
   assert.equal(result.outcomes[0].line_number, 2);
   assert.equal(result.outcomes[0].code, "PETR4");
+  assert.equal(result.outcomes[0].detalhe_erro, "");
   assert.equal(result.outcomes[1].status, "ignorado");
   assert.equal(result.outcomes[1].line_number, 3);
   assert.equal(result.outcomes[1].quantity, "100");
@@ -69,6 +71,23 @@ test("parseDividendosText aceita datas dd/mm/yyyy e yyyy-mm-dd e ignora invalida
   assert.equal(result.outcomes[0].payment_date, "31-07-2026");
 });
 
+test("parseDividendosText aceita datas sem zero a esquerda", () => {
+  const result = parseDividendosText(
+    [
+      "GGRC11;9/11/2023;56;52,08",
+      "BBDC3;19/3/2024;100;890.00",
+      "ITUB3;9/1/2023;200;120.00",
+      "PETR4;1/12/2023;300;350.00",
+    ].join("\n")
+  );
+  assert.equal(result.rows.length, 4);
+  assert.equal(result.rows[0].payment_date, "2023-11-09");
+  assert.equal(result.rows[1].payment_date, "2024-03-19");
+  assert.equal(result.rows[2].payment_date, "2023-01-09");
+  assert.equal(result.rows[3].payment_date, "2023-12-01");
+  assert.equal(result.ignoredCount, 0);
+});
+
 test("parseDividendosText aceita virgula e ponto nos numeros e ignora NaN", () => {
   const result = parseDividendosText(
     ["BBDC3;2026-07-31;100,5;890.50", "ITUB3;2026-07-01;800;350,75", "FDXB11;2026-07-01;abc;100", "VALE3;2026-07-01;1;;100"].join("\n")
@@ -84,6 +103,26 @@ test("parseDividendosText aceita virgula e ponto nos numeros e ignora NaN", () =
   assert.equal(result.outcomes[1].status, "ignorado");
   assert.equal(result.outcomes[1].quantity, "1");
   assert.equal(result.outcomes[1].total_liquido, "");
+});
+
+test("parseDividendosText arredonda quantity para 6 casas decimais", () => {
+  const result = parseDividendosText("ESS;2022-04-14;0.6470799999;1");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].quantity, 0.64708);
+  assert.equal(result.rows[0].total_liquid, 1);
+});
+
+test("parseDividendosText arredonda total_liquid para 2 casas decimais", () => {
+  const result = parseDividendosText("GRND3;2023-05-17;1200;1.335");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].quantity, 1200);
+  assert.equal(result.rows[0].total_liquid, 1.34);
+});
+
+test("parseDividendosText arredonda total_liquid coercivo para 2 casas", () => {
+  const result = parseDividendosText("BBDC3;2026-07-31;100;890.009");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].total_liquid, 890.01);
 });
 
 test("parseDividendosText ignora segunda ocorrencia no mesmo lote", () => {

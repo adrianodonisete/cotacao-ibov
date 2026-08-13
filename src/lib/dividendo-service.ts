@@ -41,7 +41,12 @@ function formatCsvLine(entry: LogEntry): string {
     String(entry.total_liquido),
     entry.status,
     entry.line_number,
+    entry.detalhe_erro,
   ].join(";");
+}
+
+function sanitizeError(message: string): string {
+  return message.replace(/;/g, ",").replace(/[\r\n]/g, " ");
 }
 
 function timestampForFilename(date: Date): string {
@@ -95,6 +100,7 @@ export async function processDividendosBatch(
         total_liquido: row.total_liquid,
         status: "duplicidade",
         line_number: row.lineNumber,
+        detalhe_erro: "",
       });
       continue;
     }
@@ -125,6 +131,7 @@ export async function processDividendosBatch(
         total_liquido: row.total_liquid,
         status: "erro",
         line_number: row.lineNumber,
+        detalhe_erro: sanitizeError(error.message || "Erro desconhecido"),
       });
       continue;
     }
@@ -136,6 +143,7 @@ export async function processDividendosBatch(
       total_liquido: row.total_liquid,
       status: "inserido",
       line_number: row.lineNumber,
+      detalhe_erro: "",
     });
   }
 
@@ -147,7 +155,7 @@ export async function processDividendosBatch(
   try {
     const filename = `dividendos_${timestampForFilename(now())}.csv`;
     const fullPath = path.join(process.cwd(), "log", "cadastro", filename);
-    const header = "codigo;data_pagamento;quantidade;total_liquido;status;line_number";
+    const header = "codigo;data_pagamento;quantidade;total_liquido;status;line_number;detalhe_erro";
     const body = allOutcomes.map(formatCsvLine).join("\n");
     const content = allOutcomes.length > 0 ? `${header}\n${body}\n` : `${header}\n`;
     writer(fullPath, content);

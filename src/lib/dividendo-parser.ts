@@ -15,6 +15,7 @@ export interface LogEntry {
   total_liquido: number | string;
   status: LogStatus;
   line_number: number;
+  detalhe_erro: string;
 }
 
 export interface DividendoParseResult {
@@ -28,16 +29,30 @@ function parseDate(raw: string): string | null {
   const trimmed = raw.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
 
-  const ddmmyyyy = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+  const ddmmyyyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const day = ddmmyyyy[1].padStart(2, "0");
+    const month = ddmmyyyy[2].padStart(2, "0");
+    return `${ddmmyyyy[3]}-${month}-${day}`;
+  }
 
   return null;
 }
 
-function parseNumber(raw: string): number | null {
-  const n = parseFloat(raw.trim().replace(",", "."));
-  return Number.isFinite(n) ? n : null;
+function roundTo(value: number, decimals: number): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
 }
+
+function parseNumber(raw: string, maxDecimals: number): number | null {
+  const n = parseFloat(raw.trim().replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  return roundTo(n, maxDecimals);
+}
+
+const EMPTY_OUTCOME = {
+  detalhe_erro: "",
+} as const;
 
 export function parseDividendosText(text: string): DividendoParseResult {
   const rows: DividendoInputWithLine[] = [];
@@ -59,6 +74,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: "",
         status: "vazio",
         line_number: lineNumber,
+        ...EMPTY_OUTCOME,
       });
       continue;
     }
@@ -71,6 +87,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: "",
         status: "comentario",
         line_number: lineNumber,
+        ...EMPTY_OUTCOME,
       });
       continue;
     }
@@ -85,14 +102,15 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: cols[3] ?? "",
         status: "ignorado",
         line_number: lineNumber,
+        ...EMPTY_OUTCOME,
       });
       continue;
     }
 
     const code = cols[0].trim().toUpperCase();
     const payment_date = parseDate(cols[1]);
-    const quantity = parseNumber(cols[2]);
-    const total_liquid = parseNumber(cols[3]);
+    const quantity = parseNumber(cols[2], 6);
+    const total_liquid = parseNumber(cols[3], 2);
 
     if (!code || !payment_date || quantity === null || total_liquid === null) {
       ignoredCount += 1;
@@ -103,6 +121,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: cols[3].trim(),
         status: "ignorado",
         line_number: lineNumber,
+        ...EMPTY_OUTCOME,
       });
       continue;
     }
@@ -117,6 +136,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: total_liquid,
         status: "duplicidade",
         line_number: lineNumber,
+        ...EMPTY_OUTCOME,
       });
       continue;
     }

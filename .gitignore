@@ -46,6 +46,9 @@ next-env.d.ts
 # log
 log/*
 
+# docker
+/dev/docker/*
+
 # local MCP config with secrets
 .cursor/mcp.json
 opencode.json
