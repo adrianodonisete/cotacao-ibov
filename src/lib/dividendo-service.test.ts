@@ -70,6 +70,7 @@ const baseRow: DividendoInputWithLine = {
   quantity: 100,
   total_liquid: 890,
   lineNumber: 1,
+  extras: "",
 };
 
 function makeWriter() {
@@ -82,7 +83,7 @@ function makeWriter() {
   return { writer, getPath: () => writtenPath, getContent: () => writtenContent };
 }
 
-const HEADER = "codigo;data_pagamento;quantidade;total_liquido;status;line_number;detalhe_erro";
+const HEADER = "codigo;data_pagamento;quantidade;total_liquido;status;line_number;detalhe_erro;extras";
 
 test("processDividendosBatch insere todas as linhas sem duplicata", async () => {
   const { writer, getPath, getContent } = makeWriter();
@@ -116,7 +117,7 @@ test("processDividendosBatch insere todas as linhas sem duplicata", async () => 
   assert.equal(result.errorCount, 0);
   const lines = getContent()!.split("\n");
   assert.equal(lines[0], HEADER);
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;;");
   assert.ok(getPath()!.endsWith(`dividendos_${expectedTimestamp}.csv`));
 });
 
@@ -134,7 +135,7 @@ test("processDividendosBatch filtra duplicata ja existente no banco", async () =
   assert.equal(result.dbDuplicates, 1);
   assert.equal(result.errorCount, 0);
   const lines = getContent()!.split("\n");
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;duplicidade;1;");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;duplicidade;1;;");
 });
 
 test("processDividendosBatch faz uma query de verificacao por linha com .limit(1)", async () => {
@@ -246,12 +247,12 @@ test("processDividendosBatch captura error.message no detalhe_erro", async () =>
   assert.equal(result.errorCount, 1);
   const lines = getContent()!.split("\n");
   assert.equal(lines[0], HEADER);
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;;");
   assert.equal(
     lines[2],
-    'BBDC3;2026-08-01;100;890;erro;2;duplicate key value violates unique constraint "dividendos_unique"'
+    'BBDC3;2026-08-01;100;890;erro;2;duplicate key value violates unique constraint "dividendos_unique";'
   );
-  assert.equal(lines[3], "BBDC3;2026-09-01;100;890;inserido;3;");
+  assert.equal(lines[3], "BBDC3;2026-09-01;100;890;inserido;3;;");
 });
 
 test("processDividendosBatch sanitiza ; e quebras de linha no detalhe_erro", async () => {
@@ -264,7 +265,7 @@ test("processDividendosBatch sanitiza ; e quebras de linha no detalhe_erro", asy
   await processDividendosBatch(supabase, [baseRow], [], writer);
 
   const lines = getContent()!.split("\n");
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;erro;1;erro com , ponto-e-virgula e linha nova");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;erro;1;erro com , ponto-e-virgula e linha nova;");
 });
 
 test("processDividendosBatch detalha erro desconhecido quando mensagem vazia", async () => {
@@ -277,7 +278,7 @@ test("processDividendosBatch detalha erro desconhecido quando mensagem vazia", a
   await processDividendosBatch(supabase, [baseRow], [], writer);
 
   const lines = getContent()!.split("\n");
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;erro;1;Erro desconhecido");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;erro;1;Erro desconhecido;");
 });
 
 test("processDividendosBatch continua processamento quando todos os inserts falham", async () => {
@@ -307,9 +308,9 @@ test("processDividendosBatch combina outcomes do parser e do service ordenados p
   });
 
   const parserOutcomes: LogEntry[] = [
-    { code: "", payment_date: "", quantity: "", total_liquido: "", status: "vazio", line_number: 2, detalhe_erro: "" },
-    { code: "", payment_date: "", quantity: "", total_liquido: "", status: "comentario", line_number: 4, detalhe_erro: "" },
-    { code: "PETR4", payment_date: "31-07-2026", quantity: "100", total_liquido: "abc", status: "ignorado", line_number: 5, detalhe_erro: "" },
+    { code: "", payment_date: "", quantity: "", total_liquido: "", status: "vazio", line_number: 2, detalhe_erro: "", extras: "" },
+    { code: "", payment_date: "", quantity: "", total_liquido: "", status: "comentario", line_number: 4, detalhe_erro: "", extras: "" },
+    { code: "PETR4", payment_date: "31-07-2026", quantity: "100", total_liquido: "abc", status: "ignorado", line_number: 5, detalhe_erro: "", extras: "" },
   ];
 
   const result = await processDividendosBatch(supabase, [baseRow], parserOutcomes, writer);
@@ -317,10 +318,51 @@ test("processDividendosBatch combina outcomes do parser e do service ordenados p
   assert.equal(result.inserted, 1);
   const lines = getContent()!.split("\n");
   assert.equal(lines[0], HEADER);
-  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;");
-  assert.equal(lines[2], ";;;;vazio;2;");
-  assert.equal(lines[3], ";;;;comentario;4;");
-  assert.equal(lines[4], "PETR4;31-07-2026;100;abc;ignorado;5;");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;;");
+  assert.equal(lines[2], ";;;;vazio;2;;");
+  assert.equal(lines[3], ";;;;comentario;4;;");
+  assert.equal(lines[4], "PETR4;31-07-2026;100;abc;ignorado;5;;");
+});
+
+test("processDividendosBatch propaga extras do row para o log", async () => {
+  const { writer, getContent } = makeWriter();
+  const { supabase } = makeStub({
+    select: () => ({ data: [], error: null }),
+    insert: () => ({ data: [], error: null }),
+  });
+
+  const rowWithExtras: DividendoInputWithLine = {
+    ...baseRow,
+    extras: "extra1,extra2",
+  };
+
+  await processDividendosBatch(supabase, [rowWithExtras], [], writer);
+
+  const lines = getContent()!.split("\n");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;inserido;1;;extra1,extra2");
+});
+
+test("processDividendosBatch propaga extras tambem em duplicatas e erros", async () => {
+  const { writer, getContent } = makeWriter();
+  let selectCallIndex = 0;
+  const { supabase } = makeStub({
+    select: () => {
+      selectCallIndex += 1;
+      return { data: selectCallIndex === 1 ? [{ id: 1 }] : [], error: null };
+    },
+    insert: () => ({ data: [], error: { message: "boom" } }),
+  });
+
+  const rows: DividendoInputWithLine[] = [
+    { ...baseRow, extras: "dup_extra" },
+    { ...baseRow, payment_date: "2026-08-01", lineNumber: 2, extras: "err_extra" },
+  ];
+
+  await processDividendosBatch(supabase, rows, [], writer);
+
+  const lines = getContent()!.split("\n");
+  assert.equal(lines[1], "BBDC3;2026-07-31;100;890;duplicidade;1;;dup_extra");
+  assert.equal(lines[2], "BBDC3;2026-08-01;100;890;erro;2;boom;err_extra");
 });
 
 test("processDividendosBatch nao falha quando writer lanca erro", async () => {
@@ -353,6 +395,7 @@ test("processDividendosBatch remove lineNumber antes do insert no Supabase", asy
   assert.equal(payload.quantity, 100);
   assert.equal(payload.total_liquid, 890);
   assert.equal("lineNumber" in payload, false);
+  assert.equal("extras" in payload, false);
 });
 
 test("processDividendosBatch propaga erro da verificacao de duplicidade", async () => {

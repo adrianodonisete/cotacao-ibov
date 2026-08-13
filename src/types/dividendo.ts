@@ -7,6 +7,7 @@ export interface DividendoInput {
 
 export interface DividendoInputWithLine extends DividendoInput {
   lineNumber: number;
+  extras: string;
 }
 
 export interface Dividendo extends DividendoInput {

@@ -16,6 +16,7 @@ export interface LogEntry {
   status: LogStatus;
   line_number: number;
   detalhe_erro: string;
+  extras: string;
 }
 
 export interface DividendoParseResult {
@@ -50,8 +51,13 @@ function parseNumber(raw: string, maxDecimals: number): number | null {
   return roundTo(n, maxDecimals);
 }
 
+function captureExtras(cols: string[]): string {
+  return cols.slice(4).filter((c) => c !== "").join(",");
+}
+
 const EMPTY_OUTCOME = {
   detalhe_erro: "",
+  extras: "",
 } as const;
 
 export function parseDividendosText(text: string): DividendoParseResult {
@@ -93,7 +99,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
     }
 
     const cols = trimmed.split(";");
-    if (cols.length !== 4) {
+    if (cols.length < 4) {
       ignoredCount += 1;
       outcomes.push({
         code: cols[0] ?? "",
@@ -107,6 +113,7 @@ export function parseDividendosText(text: string): DividendoParseResult {
       continue;
     }
 
+    const extras = captureExtras(cols);
     const code = cols[0].trim().toUpperCase();
     const payment_date = parseDate(cols[1]);
     const quantity = parseNumber(cols[2], 6);
@@ -121,7 +128,8 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: cols[3].trim(),
         status: "ignorado",
         line_number: lineNumber,
-        ...EMPTY_OUTCOME,
+        detalhe_erro: "",
+        extras,
       });
       continue;
     }
@@ -136,12 +144,13 @@ export function parseDividendosText(text: string): DividendoParseResult {
         total_liquido: total_liquid,
         status: "duplicidade",
         line_number: lineNumber,
-        ...EMPTY_OUTCOME,
+        detalhe_erro: "",
+        extras,
       });
       continue;
     }
     seenKeys.add(key);
-    rows.push({ code, payment_date, quantity, total_liquid, lineNumber });
+    rows.push({ code, payment_date, quantity, total_liquid, lineNumber, extras });
   }
 
   return { rows, outcomes, duplicityCount, ignoredCount };

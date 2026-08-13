@@ -17,6 +17,7 @@ test("parseDividendosText ignora linhas vazias e comentarios com #", () => {
   assert.equal(result.outcomes[0].status, "vazio");
   assert.equal(result.outcomes[0].line_number, 1);
   assert.equal(result.outcomes[0].detalhe_erro, "");
+  assert.equal(result.outcomes[0].extras, "");
   assert.equal(result.outcomes[1].status, "vazio");
   assert.equal(result.outcomes[1].line_number, 3);
   assert.equal(result.outcomes[2].status, "comentario");
@@ -25,29 +26,26 @@ test("parseDividendosText ignora linhas vazias e comentarios com #", () => {
   assert.equal(result.outcomes[3].line_number, 6);
 });
 
-test("parseDividendosText ignora linhas com != 4 colunas", () => {
+test("parseDividendosText ignora linhas com menos de 4 colunas", () => {
   const result = parseDividendosText(
     [
       "BBDC3;2026-07-31;100;890.00",
-      "PETR4;2026-07-31;100;1;extra",
       "VALE3;2026-07-31;100",
       "WEGE3;2026-07-31",
     ].join("\n")
   );
   assert.equal(result.rows.length, 1);
   assert.equal(result.rows[0].code, "BBDC3");
-  assert.equal(result.ignoredCount, 3);
-  assert.equal(result.outcomes.length, 3);
+  assert.equal(result.ignoredCount, 2);
+  assert.equal(result.outcomes.length, 2);
   assert.equal(result.outcomes[0].status, "ignorado");
   assert.equal(result.outcomes[0].line_number, 2);
-  assert.equal(result.outcomes[0].code, "PETR4");
+  assert.equal(result.outcomes[0].code, "VALE3");
   assert.equal(result.outcomes[0].detalhe_erro, "");
+  assert.equal(result.outcomes[0].extras, "");
   assert.equal(result.outcomes[1].status, "ignorado");
   assert.equal(result.outcomes[1].line_number, 3);
-  assert.equal(result.outcomes[1].quantity, "100");
-  assert.equal(result.outcomes[2].status, "ignorado");
-  assert.equal(result.outcomes[2].line_number, 4);
-  assert.equal(result.outcomes[2].total_liquido, "");
+  assert.equal(result.outcomes[1].total_liquido, "");
 });
 
 test("parseDividendosText faz upper e trim no codigo", () => {
@@ -165,4 +163,49 @@ test("parseDividendosText numera linhas a partir de 1", () => {
   assert.equal(result.rows[0].lineNumber, 1);
   assert.equal(result.rows[1].lineNumber, 2);
   assert.equal(result.rows[2].lineNumber, 3);
+});
+
+test("parseDividendosText processa linhas com 5 colunas e captura extras", () => {
+  const result = parseDividendosText("BBDC3;2026-07-31;100;890;extra");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].code, "BBDC3");
+  assert.equal(result.rows[0].extras, "extra");
+  assert.equal(result.ignoredCount, 0);
+});
+
+test("parseDividendosText filtra vazios nas extras", () => {
+  const result = parseDividendosText("BBDC3;2026-07-31;100;890;;extra");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].extras, "extra");
+});
+
+test("parseDividendosText junta multiplas extras com virgula", () => {
+  const result = parseDividendosText("BBDC3;2026-07-31;100;890;extra1;extra2;extra3");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].extras, "extra1,extra2,extra3");
+});
+
+test("parseDividendosText processa GRND3 com trailing semicolon", () => {
+  const result = parseDividendosText("GRND3;2023-05-17;1200;1.335;");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].code, "GRND3");
+  assert.equal(result.rows[0].quantity, 1200);
+  assert.equal(result.rows[0].total_liquid, 1.34);
+  assert.equal(result.rows[0].extras, "");
+});
+
+test("parseDividendosText captura extras em linhas ignoradas", () => {
+  const result = parseDividendosText("BBDC3;31-07-2026;100;890;extra1;extra2");
+  assert.equal(result.rows.length, 0);
+  assert.equal(result.ignoredCount, 1);
+  assert.equal(result.outcomes[0].extras, "extra1,extra2");
+});
+
+test("parseDividendosText captura extras em duplicatas in-batch", () => {
+  const result = parseDividendosText(
+    "BBDC3;2026-07-31;100;890\nBBDC3;2026-07-31;100;890;extra1;extra2"
+  );
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.duplicityCount, 1);
+  assert.equal(result.outcomes[0].extras, "extra1,extra2");
 });
