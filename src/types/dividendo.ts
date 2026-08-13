@@ -5,6 +5,10 @@ export interface DividendoInput {
   total_liquid: number;
 }
 
+export interface DividendoInputWithLine extends DividendoInput {
+  lineNumber: number;
+}
+
 export interface Dividendo extends DividendoInput {
   id: number;
   created_at: string;

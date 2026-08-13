@@ -11,6 +11,7 @@ interface SubmitResult {
   inserted: number;
   dbDuplicates: number;
   errorCount: number;
+  logPath: string | null;
   ignoredCount: number;
   duplicityCount: number;
 }
@@ -26,7 +27,7 @@ export default function CadastroDividendos() {
     setError(null);
     setSuccess(null);
 
-    const { rows, duplicityCount, ignoredCount } = parseDividendosText(rawText);
+    const { rows, outcomes, duplicityCount, ignoredCount } = parseDividendosText(rawText);
 
     if (rows.length === 0) {
       setError(
@@ -40,10 +41,10 @@ export default function CadastroDividendos() {
       const res = await fetch('/api/dividendos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dividendos: rows }),
+        body: JSON.stringify({ dividendos: rows, outcomes }),
       });
       const data = (await res.json()) as
-        | { inserted: number; dbDuplicates: number; errorCount: number }
+        | { inserted: number; dbDuplicates: number; errorCount: number; logPath: string | null }
         | { error: string };
 
       if (!res.ok || 'error' in data) {
@@ -56,6 +57,7 @@ export default function CadastroDividendos() {
         inserted: data.inserted,
         dbDuplicates: data.dbDuplicates,
         errorCount: data.errorCount,
+        logPath: data.logPath,
         ignoredCount,
         duplicityCount: duplicityCount + data.dbDuplicates,
       });
@@ -109,6 +111,12 @@ export default function CadastroDividendos() {
                 ? ` · ${success.errorCount} erro${success.errorCount !== 1 ? 's' : ''} no insert`
                 : ''}
             </StatusBanner>
+            {success.logPath && (
+              <div className="text-sm text-muted">
+                Log detalhado salvo em:{' '}
+                <code className="text-primary break-all">{success.logPath}</code>
+              </div>
+            )}
           </div>
         )}
 

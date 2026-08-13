@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServer } from "@/lib/supabase";
 import { processDividendosBatch } from "@/lib/dividendo-service";
 import { previousMonthRange } from "@/lib/dividendo-defaults";
-import type { DividendoInput } from "@/types/dividendo";
+import type { DividendoInputWithLine } from "@/types/dividendo";
+import type { LogEntry } from "@/lib/dividendo-parser";
 
 export async function POST(request: NextRequest) {
   const supabase = getSupabaseServer();
@@ -15,7 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
   }
 
-  const dividendos = (body as { dividendos?: DividendoInput[] }).dividendos;
+  const { dividendos, outcomes } = body as {
+    dividendos?: DividendoInputWithLine[];
+    outcomes?: LogEntry[];
+  };
 
   if (!Array.isArray(dividendos) || dividendos.length === 0) {
     return NextResponse.json(
@@ -25,8 +29,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { inserted, dbDuplicates, errorCount } = await processDividendosBatch(supabase, dividendos);
-    return NextResponse.json({ inserted, dbDuplicates, errorCount });
+    const { inserted, dbDuplicates, errorCount, logPath } = await processDividendosBatch(
+      supabase,
+      dividendos,
+      Array.isArray(outcomes) ? outcomes : []
+    );
+    return NextResponse.json({ inserted, dbDuplicates, errorCount, logPath });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao cadastrar dividendos.";
     return NextResponse.json({ error: message }, { status: 500 });
