@@ -77,6 +77,12 @@ async function resolvePeriod(): Promise<{ first: string; last: string }> {
   };
 }
 
+type AtivoRow = { code: string; type: string };
+type CategoryRow = { name: string };
+type DividendoRow = { code: string; payment_date: string; total_liquid: number };
+type CotacaoRow = { code: string; value: number };
+type ExistingCacheRow = { chave: string; opcao: string; periodo: string };
+
 async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
   const supabase = getSupabaseServer();
   const jobId = parseJobId();
@@ -90,7 +96,85 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
     if (jobId !== null) await finishJob(supabase, jobId, "error");
     process.exit(1);
   }
-  console.log(`Period: ${period.first} → ${period.last}`);
+  const { first, last } = period;
+  console.log(`Period: ${first} → ${last}`);
+
+  const [ativosRes, catRes, divsRes, cotRes, cacheRes] = await Promise.all([
+    supabase.from("ativos").select("code, type").neq("type", "td"),
+    supabase
+      .from("categories")
+      .select("name")
+      .in("name", ["acao", "fii", "stock", "reit"]),
+    supabase
+      .from("dividendos")
+      .select("code, payment_date, total_liquid")
+      .gte("payment_date", first)
+      .lte("payment_date", last),
+    supabase.from("cotacoes").select("code, value").eq("code", "USD_BRL"),
+    supabase.from("total_dividends_cache").select("chave, opcao, periodo"),
+  ]);
+
+  if (
+    ativosRes.error ||
+    catRes.error ||
+    divsRes.error ||
+    cotRes.error ||
+    cacheRes.error
+  ) {
+    const msg =
+      ativosRes.error?.message ??
+      catRes.error?.message ??
+      divsRes.error?.message ??
+      cotRes.error?.message ??
+      cacheRes.error?.message ??
+      "unknown";
+    console.error("Erro pré-carregando dados:", msg);
+    if (jobId !== null) await finishJob(supabase, jobId, "error");
+    process.exit(1);
+  }
+
+  const ativosList: AtivoRow[] = (ativosRes.data ?? []) as AtivoRow[];
+  const categorias: string[] = ((catRes.data ?? []) as CategoryRow[]).map(
+    (c) => c.name
+  );
+
+  const byCodeMonth = new Map<string, Map<string, number>>();
+  const byCodeYear = new Map<string, Map<string, number>>();
+  for (const d of (divsRes.data ?? []) as DividendoRow[]) {
+    const ymd = String(d.payment_date).slice(0, 10);
+    const month = ymd.slice(0, 7);
+    const year = ymd.slice(0, 4);
+    const total = Number(d.total_liquid ?? 0);
+
+    const bm = byCodeMonth.get(d.code) ?? new Map<string, number>();
+    bm.set(month, (bm.get(month) ?? 0) + total);
+    byCodeMonth.set(d.code, bm);
+
+    const by = byCodeYear.get(d.code) ?? new Map<string, number>();
+    by.set(year, (by.get(year) ?? 0) + total);
+    byCodeYear.set(d.code, by);
+  }
+
+  const usdBrl = Number(
+    ((cotRes.data ?? [])[0] as CotacaoRow | undefined)?.value ?? 0
+  );
+  if (usdBrl <= 0) {
+    console.warn(
+      "[calculate-totals-by-dividends] cotacoes.value para USD_BRL ausente; " +
+        "ativos stock/reit manterão valor em BRL."
+    );
+  }
+
+  const existing = new Set<string>();
+  for (const r of (cacheRes.data ?? []) as ExistingCacheRow[]) {
+    existing.add(`${r.chave}|${r.opcao}|${r.periodo}`);
+  }
+
+  console.log(
+    `Carregados: ${ativosList.length} ativos, ${categorias.length} categorias, ${
+      (divsRes.data ?? []).length
+    } dividendos.`
+  );
 
   return { ok: 0, fail: 0, skipped: 0 };
 }
