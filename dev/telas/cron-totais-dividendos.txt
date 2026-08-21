@@ -39,6 +39,7 @@ Abaixo o modelo de registro para o ano de 2026:
 Se o ativo for da categoria "stock" ou "reit", após calcular o "total_dividends", 
 pegar esse valor e dividi-lo pela cotação do dólar "tabela: cotacoes e code=USD_BRL, campo: value", e aí salvar o resultado no campo "total_dividends".
 Se não tiver cotação do dólar, manter o valor original de "total_dividends".
+O motivo dessa operação é por que o valor de dividendos é em real pra todos ativos, mas pra stock e reit, precisa fazer o cálculo para converter para dólar.
 
 Percorrer mês a mês e ano a ano, calculando o total de dividendos para cada ativo e categoria.
 Se no mês/ano que estiver calculando não tiver registro na tabela dividendos, não salvar o registro no total_dividends_cache.
