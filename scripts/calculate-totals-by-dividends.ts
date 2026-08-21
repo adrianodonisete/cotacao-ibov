@@ -46,7 +46,52 @@ export function shouldRecalculate(
   return periodo === currentYearLabel(now);
 }
 
+async function resolvePeriod(): Promise<{ first: string; last: string }> {
+  const supabase = getSupabaseServer();
+  const { data: firstRows, error: e1 } = await supabase
+    .from("dividendos")
+    .select("payment_date")
+    .order("payment_date", { ascending: true })
+    .limit(1);
+  const { data: lastRows, error: e2 } = await supabase
+    .from("dividendos")
+    .select("payment_date")
+    .order("payment_date", { ascending: false })
+    .limit(1);
+  if (e1 || e2) {
+    throw new Error(
+      `Erro ao consultar dividendos: ${e1?.message ?? e2?.message ?? "unknown"}`
+    );
+  }
+
+  const now = new Date();
+  const ym = currentMonthLabel(now);
+  const fallback = `${ym}-01`;
+
+  const first = (firstRows ?? [])[0] as { payment_date: string } | undefined;
+  const last = (lastRows ?? [])[0] as { payment_date: string } | undefined;
+  if (!first || !last) return { first: fallback, last: fallback };
+  return {
+    first: String(first.payment_date).slice(0, 10),
+    last: String(last.payment_date).slice(0, 10),
+  };
+}
+
 async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
+  const supabase = getSupabaseServer();
+  const jobId = parseJobId();
+
+  let period: { first: string; last: string };
+  try {
+    period = await resolvePeriod();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[calculate-totals-by-dividends]", msg);
+    if (jobId !== null) await finishJob(supabase, jobId, "error");
+    process.exit(1);
+  }
+  console.log(`Period: ${period.first} → ${period.last}`);
+
   return { ok: 0, fail: 0, skipped: 0 };
 }
 
