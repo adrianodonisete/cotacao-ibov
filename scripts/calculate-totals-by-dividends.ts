@@ -77,6 +77,31 @@ async function resolvePeriod(): Promise<{ first: string; last: string }> {
   };
 }
 
+async function fetchAllDividendos(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  first: string,
+  last: string
+): Promise<{ data: DividendoRow[]; error: { message: string } | null }> {
+  const PAGE = 1000;
+  const out: DividendoRow[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("dividendos")
+      .select("code, payment_date, total_liquid")
+      .gte("payment_date", first)
+      .lte("payment_date", last)
+      .order("payment_date", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return { data: [], error };
+    const rows = (data ?? []) as DividendoRow[];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+    from += PAGE;
+  }
+  return { data: out, error: null };
+}
+
 type AtivoRow = { code: string; type: string };
 type CategoryRow = { name: string };
 type DividendoRow = { code: string; payment_date: string; total_liquid: number };
@@ -123,20 +148,17 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
   const { first, last } = period;
   console.log(`Period: ${first} → ${last}`);
 
-  const [ativosRes, catRes, divsRes, cotRes, cacheRes] = await Promise.all([
+  const [ativosRes, catRes, cotRes, cacheRes] = await Promise.all([
     supabase.from("ativos").select("code, type").neq("type", "td"),
     supabase
       .from("categories")
       .select("name")
       .in("name", ["acao", "fii", "stock", "reit"]),
-    supabase
-      .from("dividendos")
-      .select("code, payment_date, total_liquid")
-      .gte("payment_date", first)
-      .lte("payment_date", last),
     supabase.from("cotacoes").select("code, value").eq("code", "USD_BRL"),
     supabase.from("total_dividends_cache").select("chave, opcao, periodo"),
   ]);
+
+  const divsRes = await fetchAllDividendos(supabase, first, last);
 
   if (
     ativosRes.error ||
