@@ -83,6 +83,30 @@ type DividendoRow = { code: string; payment_date: string; total_liquid: number }
 type CotacaoRow = { code: string; value: number };
 type ExistingCacheRow = { chave: string; opcao: string; periodo: string };
 
+type UpsertPayload = {
+  chave: string;
+  opcao: Opcao;
+  periodo: string;
+  total_dividends: number;
+  updated_at: string;
+};
+
+export function convert(total: number, type: string, usdBrl: number): number {
+  if ((type === "stock" || type === "reit") && usdBrl > 0) return total / usdBrl;
+  return total;
+}
+
+async function upsertBatch(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  rows: UpsertPayload[]
+): Promise<{ ok: number; err: string | null }> {
+  if (rows.length === 0) return { ok: 0, err: null };
+  const { error } = await supabase
+    .from("total_dividends_cache")
+    .upsert(rows, { onConflict: "chave,opcao,periodo" });
+  return { ok: rows.length, err: error?.message ?? null };
+}
+
 async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
   const supabase = getSupabaseServer();
   const jobId = parseJobId();
@@ -176,7 +200,82 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
     } dividendos.`
   );
 
-  return { ok: 0, fail: 0, skipped: 0 };
+  const meses = monthsBetween(first, last);
+  const anos = yearsBetween(first, last);
+  const now = new Date();
+  const upserts: UpsertPayload[] = [];
+  let skipped = 0;
+
+  function push(
+    chave: string,
+    opcao: Opcao,
+    periodo: string,
+    raw: number,
+    type: string
+  ): void {
+    const key = `${chave}|${opcao}|${periodo}`;
+    const isCurrent = shouldRecalculate(periodo, opcao, now);
+    if (!isCurrent && existing.has(key)) {
+      skipped++;
+      return;
+    }
+    if (raw <= 0 && !isCurrent) return;
+    upserts.push({
+      chave,
+      opcao,
+      periodo,
+      total_dividends: convert(raw, type, usdBrl),
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  for (const a of ativosList) {
+    for (const m of meses) {
+      push(a.code, "mensal", m, byCodeMonth.get(a.code)?.get(m) ?? 0, a.type);
+    }
+    for (const y of anos) {
+      push(a.code, "anual", y, byCodeYear.get(a.code)?.get(y) ?? 0, a.type);
+    }
+  }
+
+  for (const cat of categorias) {
+    const codes = ativosList.filter((a) => a.type === cat).map((a) => a.code);
+    for (const m of meses) {
+      let soma = 0;
+      for (const c of codes) soma += byCodeMonth.get(c)?.get(m) ?? 0;
+      push(cat, "mensal", m, soma, cat);
+    }
+    for (const y of anos) {
+      let soma = 0;
+      for (const c of codes) soma += byCodeYear.get(c)?.get(y) ?? 0;
+      push(cat, "anual", y, soma, cat);
+    }
+  }
+
+  const BATCH = 500;
+  let ok = 0;
+  let fail = 0;
+  for (let i = 0; i < upserts.length; i += BATCH) {
+    const slice = upserts.slice(i, i + BATCH);
+    const r = await upsertBatch(supabase, slice);
+    if (r.err) {
+      console.error(
+        `[batch ${i}-${i + slice.length}] upsert falhou:`,
+        r.err
+      );
+      fail += slice.length;
+    } else {
+      ok += r.ok;
+      console.log(`[batch ${i}-${i + slice.length}] OK (${r.ok} rows)`);
+    }
+    if (jobId !== null) await updateJobProgress(supabase, jobId, ok + skipped, fail);
+  }
+
+  console.log(
+    `Done: upserted=${ok} skipped(existing)=${skipped} failed=${fail} planned=${upserts.length}`
+  );
+  if (jobId !== null) await finishJob(supabase, jobId, fail > 0 ? "error" : "done");
+  return { ok, fail, skipped };
 }
 
 if (require.main === module) {

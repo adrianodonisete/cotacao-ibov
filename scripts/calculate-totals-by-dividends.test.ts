@@ -6,6 +6,7 @@ import {
   currentMonthLabel,
   currentYearLabel,
   shouldRecalculate,
+  convert,
 } from "./calculate-totals-by-dividends";
 
 test("monthsBetween retorna meses inclusivos no mesmo ano", () => {
@@ -67,4 +68,20 @@ test("shouldRecalculate: ano passado é false (anual)", () => {
     shouldRecalculate("2025", "anual", new Date("2026-08-21T00:00:00Z")),
     false
   );
+});
+
+test("convert: stock com usdBrl > 0 divide pelo dolar", () => {
+  assert.equal(convert(1000, "stock", 5), 200);
+  assert.equal(convert(1000, "reit", 5), 200);
+});
+
+test("convert: acao/fii nunca divide pelo dolar", () => {
+  assert.equal(convert(1000, "acao", 5), 1000);
+  assert.equal(convert(1000, "fii", 5), 1000);
+  assert.equal(convert(1000, "td", 5), 1000);
+});
+
+test("convert: stock/reit sem usdBrl mantem valor em BRL", () => {
+  assert.equal(convert(1000, "stock", 0), 1000);
+  assert.equal(convert(1000, "reit", -1), 1000);
 });
