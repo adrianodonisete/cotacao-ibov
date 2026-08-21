@@ -1,6 +1,6 @@
 import "./env";
 import { getSupabaseServer } from "../src/lib/supabase";
-import { parseJobId, updateJobProgress, finishJob } from "./job-progress";
+import { parseJobId, updateJobProgress, updateJobTotalSteps, finishJob } from "./job-progress";
 
 type Opcao = "mensal" | "anual";
 
@@ -251,6 +251,14 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
     });
   }
 
+  const totalCombinations =
+    ativosList.length * (meses.length + anos.length) +
+    categorias.length * (meses.length + anos.length);
+
+  const finalTotalSteps = upserts.length > 0 ? upserts.length : totalCombinations;
+
+  if (jobId !== null) await updateJobTotalSteps(supabase, jobId, finalTotalSteps);
+
   for (const a of ativosList) {
     for (const m of meses) {
       push(a.code, "mensal", m, byCodeMonth.get(a.code)?.get(m) ?? 0, a.type);
@@ -274,9 +282,14 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
     }
   }
 
+  if (jobId !== null && upserts.length !== finalTotalSteps) {
+    await updateJobTotalSteps(supabase, jobId, upserts.length);
+  }
+
   const BATCH = 500;
   let ok = 0;
   let fail = 0;
+
   for (let i = 0; i < upserts.length; i += BATCH) {
     const slice = upserts.slice(i, i + BATCH);
     const r = await upsertBatch(supabase, slice);
@@ -290,7 +303,7 @@ async function main(): Promise<{ ok: number; fail: number; skipped: number }> {
       ok += r.ok;
       console.log(`[batch ${i}-${i + slice.length}] OK (${r.ok} rows)`);
     }
-    if (jobId !== null) await updateJobProgress(supabase, jobId, ok + skipped, fail);
+    if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
   }
 
   console.log(

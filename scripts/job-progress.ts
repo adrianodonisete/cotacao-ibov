@@ -35,6 +35,26 @@ export async function updateJobProgress(
 }
 
 /**
+ * Updates total_steps for the given job row.
+ * Use when the actual work size is only known after the script starts
+ * (e.g. count of dividends to process). Silently ignores errors.
+ */
+export async function updateJobTotalSteps(
+  supabase: SupabaseClient,
+  jobId: number,
+  totalSteps: number
+): Promise<void> {
+  const { error } = await supabase
+    .from('status_cron_job')
+    .update({ total_steps: totalSteps })
+    .eq('id', jobId);
+
+  if (error) {
+    console.warn(`[job-progress] Erro ao atualizar total_steps (jobId=${jobId}):`, error.message);
+  }
+}
+
+/**
  * Marks the job as done or error and sets finished_at to now.
  * Silently ignores errors.
  */
