@@ -10,7 +10,8 @@ type CronName =
 	| 'sync-cotacoes-td'
 	| 'sync-cotacoes-indices'
 	| 'calculate-totals-by-category'
-	| 'calculate-totals-by-assets';
+	| 'calculate-totals-by-assets'
+	| 'calculate-totals-by-dividends';
 
 interface CronConfig {
 	script: string;
@@ -42,6 +43,10 @@ const CRON_CONFIG: Record<CronName, CronConfig> = {
 	'calculate-totals-by-assets': {
 		script: 'scripts/calculate-totals-by-assets.ts',
 		types: ['acao', 'fii', 'stock', 'reit', 'td'],
+	},
+	'calculate-totals-by-dividends': {
+		script: 'scripts/calculate-totals-by-dividends.ts',
+		fixedTotalSteps: 1,
 	},
 };
 

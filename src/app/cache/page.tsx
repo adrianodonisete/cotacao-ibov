@@ -26,6 +26,7 @@ const CRON_CARDS: CronCard[] = [
   { cron: 'sync-cotacoes-indices', label: 'Sync Cotações Índices (IPCA, SELIC, Dólar)', description: 'Sincroniza IPCA 12M, SELIC meta e cotação PTAX do dólar (compra) via APIs do Banco Central.', types: ['indice'], source: 'BCB (api.bcb.gov.br + olinda.bcb.gov.br)' },
   { cron: 'calculate-totals-by-category', label: 'Calcular Totais por Categoria', description: 'Calcula e atualiza os totais agregados (aportes, valor atual, peso) para cada categoria de ativo.', types: ['acao', 'fii', 'stock', 'reit', 'td'], source: 'Supabase (agregação)' },
   { cron: 'calculate-totals-by-assets', label: 'Calcular Totais por Ativo', description: 'Calcula montante objetivo, aporte, lucro, montante faltante e datas do primeiro/último aporte para cada ativo, gravando em total_assets_cache.', types: ['acao', 'fii', 'stock', 'reit', 'td'], source: 'Supabase (agregação)' },
+  { cron: 'calculate-totals-by-dividends', label: 'Calcular Totais de Dividendos por Período', description: 'Calcula e grava em total_dividends_cache o total mensal e anual de dividendos por ativo e por categoria (acao/fii/stock/reit). Stock/reit convertidos para USD via cotação USD_BRL.', types: ['acao', 'fii', 'stock', 'reit'], source: 'Supabase (agregação por período)' },
 ];
 
 function formatDuration(startedAt: string, finishedAt: string | null): string {
