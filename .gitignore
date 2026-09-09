@@ -52,3 +52,6 @@ log/*
 # local MCP config with secrets
 .cursor/mcp.json
 opencode.json
+
+# db backup
+/db/backup/*
