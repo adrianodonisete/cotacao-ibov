@@ -1,0 +1,47 @@
+name: Deploy Next.js to InterServer
+
+on:
+  push:
+    branches:
+      - main # Dispara o deploy sempre que você der push na branch main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-size: 20 # Escolha a mesma versão do seu CloudPanel
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Deploy to VPS via SFTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: "" # Não precisa de senha pois usamos a chave SSH
+          ssh: true
+          port: 22
+          # Altere o caminho abaixo para a pasta exata do seu site no CloudPanel:
+          local-dir: ./
+          server-dir: /home/my-wallet/htdocs/://my.wallet.local
+          # Enviamos apenas o necessário para rodar, ignorando códigos fonte crus:
+          exclude: |
+            **/.git*
+            **/.git*/**
+            node_modules/**
+            src/**
+            app/**
+            pages/**
+            components/**
