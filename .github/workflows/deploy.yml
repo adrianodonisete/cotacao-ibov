@@ -35,7 +35,7 @@ jobs:
           port: 22
           # Altere o caminho abaixo para a pasta exata do seu site no CloudPanel:
           local-dir: ./
-          server-dir: /home/my-wallet/htdocs/://my.wallet.local
+          server-dir: /home/my-wallet/htdocs/my.wallet.local/
           # Enviamos apenas o necessário para rodar, ignorando códigos fonte crus:
           exclude: |
             **/.git*
