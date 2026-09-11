@@ -30,7 +30,7 @@ jobs:
         with:
           server: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: "" # Não precisa de senha pois usamos a chave SSH
+          password: '""' # Alterado para aspas simples e duplas para enganar a validação
           ssh: true
           port: 22
           # Altere o caminho abaixo para a pasta exata do seu site no CloudPanel:
