@@ -3,7 +3,7 @@ name: Deploy Next.js to InterServer
 on:
   push:
     branches:
-      - main # Dispara o deploy sempre que você der push na branch main
+      - master # Dispara o deploy sempre que você der push na branch main
 
 jobs:
   build-and-deploy:
