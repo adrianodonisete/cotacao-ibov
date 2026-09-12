@@ -55,3 +55,6 @@ opencode.json
 
 # db backup
 /db/backup/*
+
+# bkp .github
+.github/workflows/deploy-BKP-*.yml
