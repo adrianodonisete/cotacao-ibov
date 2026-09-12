@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-size: 20 # Escolha a mesma versão do seu CloudPanel
+          node-size: 24 # Escolha a mesma versão do seu CloudPanel
           cache: "npm"
 
       - name: Install Dependencies
@@ -41,3 +41,4 @@ jobs:
             /app/
             /pages/
             /components/
+            /dev/
