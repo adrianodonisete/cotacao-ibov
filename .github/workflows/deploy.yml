@@ -34,4 +34,4 @@ jobs:
           REMOTE_USER: ${{ secrets.SSH_USER }}
           TARGET: /home/my-wallet/htdocs/my.wallet.local/ # O caminho correto do seu VPS
           SOURCE: ./ # Envia tudo da raiz compilada
-          EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.cursor,db"
+          EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.env*"
