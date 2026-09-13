@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-size: 24 # Escolha a mesma versão do seu CloudPanel
+          node-version: 24
           cache: "npm"
 
       - name: Install Dependencies
@@ -34,4 +35,4 @@ jobs:
           REMOTE_USER: ${{ secrets.SSH_USER }}
           TARGET: /home/my-wallet/htdocs/my.wallet.local/ # O caminho correto do seu VPS
           SOURCE: ./ # Envia tudo da raiz compilada
-          EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.cursor,dev,db"
+          EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.cursor,db"
