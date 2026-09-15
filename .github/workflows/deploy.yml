@@ -35,3 +35,7 @@ jobs:
           TARGET: /home/my-wallet/htdocs/my.wallet.local/ # O caminho correto do seu VPS
           SOURCE: ./ # Envia tudo da raiz compilada
           EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.env*"
+          SCRIPT_AFTER: |
+            export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+            cd /home/my-wallet/htdocs/my.wallet.local/
+            pm2 restart my-wallet --silent || pm2 start npm --name my-wallet -- start
