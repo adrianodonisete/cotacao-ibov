@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   description: "Consulte a cotação atual de ações e FIIs da B3",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
