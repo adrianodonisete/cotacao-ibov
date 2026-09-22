@@ -36,6 +36,9 @@ jobs:
           SOURCE: ./ # Envia tudo da raiz compilada
           EXCLUDE: "node_modules,src,app,pages,components,.git,.github,.env*"
           SCRIPT_AFTER: |
-            export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            . "$NVM_DIR/nvm.sh"
             cd /home/my-wallet/htdocs/my.wallet.local/
+            npm ci --omit=dev --no-audit --no-fund
             pm2 restart my-wallet --silent || pm2 start npm --name my-wallet -- start

@@ -14,38 +14,30 @@ type CronName =
 	| 'calculate-totals-by-dividends';
 
 interface CronConfig {
-	script: string;
 	types?: string[];
 	fixedTotalSteps?: number;
 }
 
 const CRON_CONFIG: Record<CronName, CronConfig> = {
 	'sync-cotacoes': {
-		script: 'scripts/sync-cotacoes.ts',
 		types: ['acao', 'fii'],
 	},
 	'sync-cotacoes-us': {
-		script: 'scripts/sync-cotacoes-us.ts',
 		types: ['stock', 'reit'],
 	},
 	'sync-cotacoes-td': {
-		script: 'scripts/sync-cotacoes-td.ts',
 		types: ['td'],
 	},
 	'sync-cotacoes-indices': {
-		script: 'scripts/sync-cotacoes-indices.ts',
 		fixedTotalSteps: 3,
 	},
 	'calculate-totals-by-category': {
-		script: 'scripts/calculate-totals-by-category.ts',
 		fixedTotalSteps: 5,
 	},
 	'calculate-totals-by-assets': {
-		script: 'scripts/calculate-totals-by-assets.ts',
 		types: ['acao', 'fii', 'stock', 'reit', 'td'],
 	},
 	'calculate-totals-by-dividends': {
-		script: 'scripts/calculate-totals-by-dividends.ts',
 		fixedTotalSteps: 1,
 	},
 };
@@ -116,10 +108,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 	const jobId: number = inserted.id;
 
-	// Spawn script as non-blocking background process.
-	// shell: true is required on Windows (npx is a .cmd file, not a native executable).
+	// Spawn the npm script as a non-blocking background process. npm resolves
+	// local binaries from node_modules/.bin in both development and production.
 	const cwd = path.resolve(process.cwd());
-	const child = spawn('npx', ['tsx', config.script, '--job-id', String(jobId)], {
+	const child = spawn('npm', ['run', cron, '--', '--job-id', String(jobId)], {
 		cwd,
 		detached: true,
 		stdio: 'ignore',
