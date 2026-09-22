@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS status_cron_job (
     finished_steps INT          NOT NULL DEFAULT 0,
     started_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
     finished_at    TIMESTAMPTZ,
+    errors         JSONB        NOT NULL DEFAULT '[]'::jsonb,
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 

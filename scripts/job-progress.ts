@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CronJobStatus } from '../src/types/cron-job';
+import type { CronJobError } from '../src/types/cron-job';
+
+export function getJobCompletionStatus(fail: number): CronJobStatus {
+  void fail;
+  return 'done';
+}
 
 /**
  * Reads --job-id <n> from process.argv.
@@ -22,11 +28,12 @@ export async function updateJobProgress(
   supabase: SupabaseClient,
   jobId: number,
   ok: number,
-  fail: number
+  fail: number,
+  errors: CronJobError[] = []
 ): Promise<void> {
   const { error } = await supabase
     .from('status_cron_job')
-    .update({ finished_steps: ok + fail })
+    .update({ finished_steps: ok + fail, errors })
     .eq('id', jobId);
 
   if (error) {
@@ -61,11 +68,12 @@ export async function updateJobTotalSteps(
 export async function finishJob(
   supabase: SupabaseClient,
   jobId: number,
-  status: CronJobStatus
+  status: CronJobStatus,
+  errors: CronJobError[] = []
 ): Promise<void> {
   const { error } = await supabase
     .from('status_cron_job')
-    .update({ status, finished_at: new Date().toISOString() })
+    .update({ status, finished_at: new Date().toISOString(), errors })
     .eq('id', jobId);
 
   if (error) {

@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { CronJobStatusResponse } from '@/types/cron-job';
+import type { CronJobError, CronJobStatusResponse } from '@/types/cron-job';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { StatusBanner } from '@/components/ui/StatusBanner';
+import { Modal } from '@/components/ui/Modal';
 import { H1, Lead } from '@/components/ui/typography';
 
 const POLL_INTERVAL_MS = 2000;
-const STALE_JOB_MINUTES = 15;
 
 interface CronCard {
   cron: string;
@@ -49,11 +49,6 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function isStale(startedAt: string): boolean {
-  const diff = (Date.now() - new Date(startedAt).getTime()) / 1000 / 60;
-  return diff > STALE_JOB_MINUTES;
-}
-
 interface CardState {
   job: CronJobStatusResponse | null;
   loading: boolean;
@@ -69,6 +64,7 @@ function CronCardComponent({ card }: { card: CronCard }) {
     error: null,
   });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -109,10 +105,15 @@ function CronCardComponent({ card }: { card: CronCard }) {
   }, [fetchStatus]);
 
   useEffect(() => {
-    fetchStatus().then(data => {
-      if (data?.status === 'running') startPolling();
-    });
-    return () => stopPolling();
+    const timer = window.setTimeout(() => {
+      fetchStatus().then(data => {
+        if (data?.status === 'running') startPolling();
+      });
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      stopPolling();
+    };
   }, [fetchStatus, startPolling]);
 
   useEffect(() => {
@@ -140,7 +141,7 @@ function CronCardComponent({ card }: { card: CronCard }) {
 
   const { job, loading, triggering, error } = state;
   const isRunning = job?.status === 'running';
-  const stale = isRunning && job && isStale(job.started_at);
+  const jobErrors = job?.errors ?? [];
   const buttonDisabled = isRunning || triggering;
 
   return (
@@ -183,9 +184,12 @@ function CronCardComponent({ card }: { card: CronCard }) {
         </div>
       )}
 
-      {stale && (
+      {jobErrors.length > 0 && (
         <StatusBanner tone="warning">
-          Job travado — iniciado há mais de {STALE_JOB_MINUTES} min sem concluir. Pode ter falhado.
+          Concluído com {jobErrors.length} ocorrência(s) que precisam de atenção.
+          <Button variant="text-link" size="sm" className="ml-2" onClick={() => setDetailsOpen(true)}>
+            Ver detalhes
+          </Button>
         </StatusBanner>
       )}
 
@@ -196,7 +200,35 @@ function CronCardComponent({ card }: { card: CronCard }) {
           {triggering ? 'Iniciando...' : isRunning ? 'Executando...' : 'Executar'}
         </Button>
       </div>
+
+      <Modal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title={`Detalhes das ocorrências — ${card.label}`}
+        size="lg"
+        footer={<Button variant="secondary" size="sm" onClick={() => setDetailsOpen(false)}>Fechar</Button>}
+      >
+        <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
+          {jobErrors.map((item, index) => (
+            <ErrorDetail key={`${item.batch}-${item.code ?? item.codes?.join('-') ?? index}`} error={item} />
+          ))}
+        </div>
+      </Modal>
     </Card>
+  );
+}
+
+function ErrorDetail({ error }: { error: CronJobError }) {
+  const codes = error.code ?? error.codes?.join(', ');
+  return (
+    <div className="rounded-md border border-hairline bg-surface-soft px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-muted">
+        <span>{error.batch}</span>
+        <span className="uppercase">{error.kind}</span>
+      </div>
+      {codes && <p className="mt-1 font-medium text-ink">{codes}</p>}
+      <p className="mt-1 text-body-sm text-body">{error.message}</p>
+    </div>
   );
 }
 

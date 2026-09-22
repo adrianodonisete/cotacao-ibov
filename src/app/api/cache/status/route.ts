@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase';
 import type { CronJobRow, CronJobStatusResponse } from '@/types/cron-job';
 
-const STALE_THRESHOLD_MINUTES = 15;
-
-function isStaleJob(row: CronJobRow): boolean {
-	if (row.status !== 'running') return false;
-	const ageMs = Date.now() - new Date(row.started_at).getTime();
-	return ageMs > STALE_THRESHOLD_MINUTES * 60 * 1000;
-}
-
 export async function GET(req: NextRequest): Promise<NextResponse> {
 	const cron = req.nextUrl.searchParams.get('cron');
 
@@ -37,17 +29,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 		return NextResponse.json({ error: error.message }, { status: 500 });
 	}
 
-	let row = data as CronJobRow;
-
-	// Auto-mark stale jobs as error so the UI stops polling
-	if (isStaleJob(row)) {
-		const now = new Date().toISOString();
-		await supabase
-			.from('status_cron_job')
-			.update({ status: 'error', finished_at: now })
-			.eq('id', row.id);
-		row = { ...row, status: 'error', finished_at: now };
-	}
+	const row = data as CronJobRow;
 
 	const percent =
 		row.total_steps > 0
@@ -63,6 +45,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 		percent,
 		started_at: row.started_at,
 		finished_at: row.finished_at,
+		errors: row.errors ?? [],
 	};
 
 	return NextResponse.json(response);

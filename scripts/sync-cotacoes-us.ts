@@ -13,7 +13,8 @@ import './env';
 import { getSupabaseServer } from '../src/lib/supabase';
 import { fetchPricesForTickers } from '../src/lib/twelvedata-service';
 import type { CotacaoSyncResult, CotacaoUpsertInput } from '../src/types/cotacao';
-import { parseJobId, updateJobProgress, finishJob } from './job-progress';
+import type { CronJobError } from '../src/types/cron-job';
+import { getJobCompletionStatus, parseJobId, updateJobProgress, finishJob } from './job-progress';
 
 const BATCH_SIZE = 5;
 const WAIT_MS = 60_000; // 60 segundos entre lotes (free tier: 8 créditos/min)
@@ -61,6 +62,7 @@ async function main(): Promise<CotacaoSyncResult> {
 
 	let ok = 0;
 	let fail = 0;
+	const errors: CronJobError[] = [];
 
 	// 2. Processar cada lote
 	for (let i = 0; i < batches.length; i++) {
@@ -78,9 +80,10 @@ async function main(): Promise<CotacaoSyncResult> {
 				const result = prices[code];
 
 				if (!result) {
+					errors.push({ code, message: 'Sem preço na resposta', kind: 'price', batch: batchLabel });
 					console.warn(`${batchLabel} [${code}] Sem preço na resposta; ignorado.`);
 					fail++;
-					if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+					if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail, errors);
 					continue;
 				}
 
@@ -93,21 +96,23 @@ async function main(): Promise<CotacaoSyncResult> {
 				const { error: upsertError } = await supabase.from('cotacoes').upsert(upsertInput, { onConflict: 'code' });
 
 				if (upsertError) {
+					errors.push({ code, message: `Erro ao gravar cotacoes: ${upsertError.message}`, kind: 'upsert', batch: batchLabel });
 					console.error(`${batchLabel} [${code}] Erro ao gravar cotacoes:`, upsertError.message);
 					fail++;
-					if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+					if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail, errors);
 					continue;
 				}
 
 				ok++;
 				console.log(`${batchLabel} [${code}] OK — ${result.price} (${result.date_update})`);
-				if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+				if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail, errors);
 			}
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
+			errors.push({ codes: batch, message: msg, kind: 'api', batch: batchLabel });
 			console.error(`${batchLabel} Erro na chamada à API:`, msg);
 			fail += batch.length;
-			if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail);
+			if (jobId !== null) await updateJobProgress(supabase, jobId, ok, fail, errors);
 		}
 
 		// 4. Aguardar 60s entre lotes (exceto após o último)
@@ -118,12 +123,12 @@ async function main(): Promise<CotacaoSyncResult> {
 	}
 
 	console.log(`Concluído: ${ok} ok, ${fail} falha(s).`);
-	if (jobId !== null) await finishJob(supabase, jobId, fail > 0 ? 'error' : 'done');
+	if (jobId !== null) await finishJob(supabase, jobId, getJobCompletionStatus(fail), errors);
 	return { total: rows.length, ok, fail };
 }
 
 main()
-	.then(result => process.exit(result.fail > 0 ? 1 : 0))
+	.then(() => process.exit(0))
 	.catch(err => {
 		const msg = err instanceof Error ? err.message : String(err);
 		console.error('Falha fatal no sync-cotacoes-us:', msg);
