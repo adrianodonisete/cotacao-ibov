@@ -64,3 +64,27 @@ Tools (all on the `project-0-ibov-mem0` server): `add_memory`, `search_memories`
 ```
 
 > The scope rule above is also enforced as an always-applied Cursor rule in `.cursor/rules/mem0.mdc`.
+
+# Deploy & VPS
+
+## Deploy (GitHub Actions)
+- Workflow: `.github/workflows/deploy.yml` (push to `master`): checkout → setup-node → `npm ci` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH) to `/home/my-wallet/htdocs/my.wallet.local/`.
+- `node-version: 24` in the workflow (NOT `node-size` — invalid). Match the server Node 24.21.0.
+- `EXCLUDE: node_modules,src,app,pages,components,.git,.github,.env*` — excluded files survive `--delete`; `.env*` protects the server-only `.env.local` from being erased.
+- `SCRIPT_AFTER` restarts the app as the SSH user (`nvm` source → `cd` site dir → `pm2 restart my-wallet || pm2 start npm --name my-wallet -- start`). It only works if `SSH_USER` secret is `my-wallet` (site user).
+
+## VPS runtime (CloudPanel 2, InterServer)
+- Site user `my-wallet` (home `/home/my-wallet`); deploy-only user `github-deployer`. Runtime (nvm Node 24, pm2 daemon) belongs to `my-wallet`.
+- Node via nvm per site user (`~/.nvm/versions/node/v24.21.0`); source `~/.nvm/nvm.sh` in scripts. `github-deployer` has system Node 18 — cannot run Next.js 16.
+- App: `pm2 start npm --name my-wallet -- start` as `my-wallet`; `pm2 save` + crontab `@reboot pm2 resurrect`. `pm2` is per-OS-user — `pm2 status` as another user shows nothing.
+- Nginx vhost proxies to `127.0.0.1:3000`. **502 Bad Gateway = app not running** (start pm2), NOT SSL or proxy trailing slash.
+- `.env.local` lives on the server (`/home/my-wallet/htdocs/my.wallet.local/.env.local`) and is never committed.
+
+## Gotcha: build-time env baking
+- `src/app/layout.tsx` runs `checkSupabaseConnection()` at render and gates the whole app. Pages are static by default (no `cacheComponents`), so the layout runs at **build time on CI (no env)** — the error text gets baked into the static HTML, and the server `.env.local` is never read for those pages.
+- Fix (applied): `export const dynamic = "force-dynamic"` in `src/app/layout.tsx` — forces per-request SSR. Do not remove it without understanding this.
+
+## Rules & docs
+- `.cursor/rules/deploy-github-actions.mdc` — deploy pipeline details/gotchas.
+- `.cursor/rules/vps-cloudpanel-runtime.mdc` — VPS/CloudPanel/pm2/.env.local/details.
+- `dev/vps/erro-badgateway-nextjs-vps.md` — provisioning story; `dev/vps/vhost-file-content.txt` — vhost template.

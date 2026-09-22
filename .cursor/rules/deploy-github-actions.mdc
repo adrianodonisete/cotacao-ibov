@@ -1,0 +1,58 @@
+---
+description: GitHub Actions deploy pipeline (build in CI + SFTP/rsync to VPS + pm2 restart) — config, gotchas and secrets
+alwaysApply: true
+---
+
+# Deploy: GitHub Actions → VPS
+
+## Workflow `.github/workflows/deploy.yml`
+
+- Trigger: push to `master`.
+- Steps: `actions/checkout` → `actions/setup-node` → `npm ci` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH).
+
+## Node version in CI
+
+- Use **`node-version: 24`** — NOT `node-size`. `node-size` is an invalid input for `actions/setup-node` (setup-node then has no version → the step fails/misbehaves).
+- Must match the site's Node on the VPS: Node `24.21.0` (installed per site user via nvm). The app is built on the GitHub runner and deployed as a built artifact, so patch-level differences are fine.
+
+
+
+## Deploy step (rsync over SSH/SFTP)
+
+- `ARGS: "-rlgoDzvc --delete"` — `--delete` removes remote files that are **not** in the source (or excluded).
+- `EXCLUDE:` — comma-separated rsync `--exclude` patterns. **Excluded files are protected from both transfer AND deletion** with `--delete` (unless `--delete-excluded` is passed, which it is not):
+  `node_modules,src,app,pages,components,.git,.github,.env*`
+  - `node_modules` exists on the runner (created by `npm ci`) but is deliberately NOT uploaded. The server must have `node_modules` installed itself (see VPS rule).
+  - `.env*` **MUST stay excluded**: `.env.local` is gitignored (not in repo) and lives only on the server. Without this exclusion, `--delete` erases it on every deploy.
+- `SOURCE: ./`, `TARGET: /home/my-wallet/htdocs/my.wallet.local/`.
+
+## Restart after deploy
+
+- The deploy only syncs files — it does **not** restart the app. Without a restart, the running `next start` keeps serving the old build.
+
+- `SCRIPT_AFTER` runs on the server after rsync and restarts the app as the SSH user:
+  ```yaml
+  SCRIPT_AFTER: |
+    export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+    cd /home/my-wallet/htdocs/my.wallet.local/
+    pm2 restart my-wallet --silent || pm2 start npm --name my-wallet -- start
+  ```
+- `SCRIPT_AFTER` only works if `REMOTE_USER` is the site user **`my-wallet`** — nvm and pm2 belong to that user. Running it as `github-deployer` (deploy-only user) fails (no nvm, wrong pm2 daemon).
+
+## Secrets (GitHub → Settings → Secrets)
+
+- `SSH_HOST`: `162.35.122.199`
+- `SSH_USER`: **`my-wallet`** — the CloudPanel site user, so `SCRIPT_AFTER` has nvm + pm2.
+- `SSH_KEY`: private key; the public key (`id_rsa_github.pub` in `.vscode/ssh_keys/`) must be added to `my-wallet`'s `authorized_keys` (CloudPanel → Site → Settings → Site User Settings → SSH Keys).
+
+## Gotchas
+
+- The deploy creates `node_modules` **on the runner**, not on the server. Server runtime deps must be installed once as `my-wallet` (see VPS rule).
+- `--delete` deletes **any** server file not in the repo and not excluded (e.g., `.env.local` was erased once before `.env*` was added to EXCLUDE). Keep runtime-only files in `EXCLUDE`.
+- Fixing the deploy itself: don't put secrets in the repo — they stay in GitHub secrets only.
+
+## Reference
+
+- VPS runtime details: `.cursor/rules/vps-cloudpanel-runtime.mdc`
+- Original provisioning story: `dev/vps/erro-badgateway-nextjs-vps.md`
+- Vhost template: `dev/vps/vhost-file-content.txt`

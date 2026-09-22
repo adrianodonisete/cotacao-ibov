@@ -1,0 +1,81 @@
+---
+description: VPS/CloudPanel runtime — site users, nvm Node, pm2 lifecycle, nginx proxy, .env.local and the build-time env baking gotcha
+alwaysApply: true
+---
+
+# VPS / CloudPanel runtime
+
+## Topology
+
+```
+Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
+        → Nginx (CloudPanel vhost) → proxy_pass http://127.0.0.1:3000
+        → Next.js (next start, pm2, user my-wallet)
+```
+
+- **502 Bad Gateway** = the upstream on port `3000` is not responding — the Node app is not running. It is **NOT** an SSL/cert issue nor the trailing slash of `proxy_pass`.
+
+## Users (on the VPS)
+
+- `my-wallet` — CloudPanel **site user**; home `/home/my-wallet`; owns the site at `/home/my-wallet/htdocs/my.wallet.local/`; owns nvm (Node) and the pm2 daemon.
+ This is the user that must run the app.
+- `github-deployer` — **deploy-only** user (GitHub Actions writes the site dir with it). Its shell has system Node 18 — it cannot run Next.js 16 (requires Node ≥ 20.9), and it has no nvm/pm2 daemon of the site. Diagnostics as this user are fine; restarts must go through `my-wallet`.
+
+## Node.js (CloudPanel manages via nvm)
+
+- Node versions live per site user: `~/.nvm/versions/node/` — the site has `v24.21.0`.
+- `nvm` loads only in the site user's interactive shell. In non-interactive/SSH scripts, source it explicitly:
+  ```bash
+  export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+  ```
+- To change the site's Node version: CloudPanel → Site → Settings → Node.js Settings → Version; then log out/in the SSH session (Node.js versions are managed via nvm by CloudPanel).
+
+## pm2 lifecycle (pm2 is per-OS-user!)
+
+- pm2 daemons are per-OS-user. `pm2 status` as `github-deployer` shows **nothing** of `my-wallet`'s apps.
+- Start/restart as `my-wallet` (from the site dir, with nvm sourced):
+  ```bash
+  cd /home/my-wallet/htdocs/my.wallet.local/
+  export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+  pm2 start npm --name my-wallet -- start
+  pm2 save
+  ```
+- Survive reboots: site-user crontab (`crontab -e`): `@reboot pm2 resurrect` (plus the `PATH` output of `echo $PATH`).
+- Troubleshoot: `pm2 status`, `pm2 logs my-wallet --lines 100`, `curl -s http://127.0.0.1:3000/`.
+
+## `.env.local` (runtime server env)
+
+- Runtime server-side env comes from the server file: `/home/my-wallet/htdocs/my.wallet.local/.env.local` (needed: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRAPI_TOKEN`, `TWELVEDATA_API_KEY`, etc.) — copy from the local `.env.local`; it is gitignored, **never commit it**.
+- Protected from deploys via `EXCLUDE: ...,.env*` in the workflow — `--delete` would erase it otherwise.
+
+
+
+## Nginx / vhost
+
+- CloudPanel generates the vhost for the site (see `dev/vps/vhost-file-content.txt`); it proxies to the App Port (`3000`).
+- The generated template listens on 80/443 and forces `http → https` redirect. For a `.local` domain without a real cert, accessing via **http** requires removing the `if ($scheme != "https")` redirect block in the vhost (CloudPanel → Site → Vhost). This is a convenience fix — not the 502 cause.
+
+
+
+## Next.js build-time env baking (important gotcha!)
+
+- `src/app/layout.tsx` calls `checkSupabaseConnection()` — a server check that **gates the whole app** (shows a full-screen error if it fails).
+- Pages in this project are **static by default** (no `cacheComponents`; "Previous Model"). For static pages, the root layout runs at **build time on CI** — and the GitHub runner has **no `.env.local`** → the message "Variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY não configuradas." gets **baked into the static HTML**. The server's `.env.local` is never consulted for those static pages — a correct `.env.local` on the VPS does NOT fix it on its own.
+- Local dev works because `next dev` renders per-request (reads local `.env.local`).
+- **Fix applied:** `export const dynamic = "force-dynamic";` in `src/app/layout.tsx` forces per-request SSR → the check reads the server `.env.local`. (In Next.js 16, `dynamic` is valid in the "Previous Model" — see `node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`. Do not remove it without understanding this.)
+
+## SSH access from the dev machine
+
+- Keys: `.vscode/ssh_keys/id_rsa_github` + `.pub` (gitignored via `.vscode`).
+- Windows OpenSSH rejects the private key when ACLs are too open → fix once:
+  ```powershell
+  icacls ".vscode/ssh_keys/id_rsa_github" /inheritance:r
+  icacls ".vscode/ssh_keys/id_rsa_github" /grant:r "AesSedai:R"
+  ```
+- Host: `162.35.122.199`; users: `github-deployer` (deploy / read-only diagnostics) and `my-wallet` (site runtime — restarts need this one).
+
+## Reference docs
+
+- `dev/vps/erro-badgateway-nextjs-vps.md` — full provisioning story (InterServer 1 Slice/2GB, CloudPanel 2, swap, SSH keys, vhost fixes).
+
+- `dev/vps/vhost-file-content.txt` — vhost template.
