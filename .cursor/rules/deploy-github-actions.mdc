@@ -21,8 +21,9 @@ alwaysApply: true
 
 - `ARGS: "-rlgoDzvc --delete"` — `--delete` removes remote files that are **not** in the source (or excluded).
 - `EXCLUDE:` — comma-separated rsync `--exclude` patterns. **Excluded files are protected from both transfer AND deletion** with `--delete` (unless `--delete-excluded` is passed, which it is not):
-  `node_modules,src,app,pages,components,.git,.github,.env*`
+  `node_modules,app,pages,components,.git,.github,.env*`
   - `node_modules` exists on the runner (created by `npm ci`) but is deliberately NOT uploaded. The server must have `node_modules` installed itself (see VPS rule).
+  - `src` must be deployed because the production cron scripts in `scripts/` import shared modules from `src/lib` and `src/types`.
   - `.env*` **MUST stay excluded**: `.env.local` is gitignored (not in repo) and lives only on the server. Without this exclusion, `--delete` erases it on every deploy.
 - `SOURCE: ./`, `TARGET: /home/my-wallet/htdocs/my.wallet.local/`.
 

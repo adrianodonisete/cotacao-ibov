@@ -70,7 +70,7 @@ Tools (all on the `project-0-ibov-mem0` server): `add_memory`, `search_memories`
 ## Deploy (GitHub Actions)
 - Workflow: `.github/workflows/deploy.yml` (push to `master`): checkout → setup-node → `npm ci` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH) to `/home/my-wallet/htdocs/my.wallet.local/`.
 - `node-version: 24` in the workflow (NOT `node-size` — invalid). Match the server Node 24.21.0.
-- `EXCLUDE: node_modules,src,app,pages,components,.git,.github,.env*` — excluded files survive `--delete`; `.env*` protects the server-only `.env.local` from being erased.
+- `EXCLUDE: node_modules,app,pages,components,.git,.github,.env*` — excluded files survive `--delete`; `.env*` protects the server-only `.env.local` from being erased. `src` must be deployed because production cron scripts import shared modules from `src/lib` and `src/types`.
 - `SCRIPT_AFTER` restarts the app as the SSH user (`nvm` source → `cd` site dir → `pm2 restart my-wallet || pm2 start npm --name my-wallet -- start`). It only works if `SSH_USER` secret is `my-wallet` (site user).
 
 ## VPS runtime (CloudPanel 2, InterServer)
