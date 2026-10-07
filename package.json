@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:deploy-excludes": "tsx --test scripts/deploy-excludes.test.ts",
     "sync-cotacoes": "tsx scripts/sync-cotacoes.ts",
     "sync-cotacoes-us": "tsx scripts/sync-cotacoes-us.ts",
     "sync-cotacoes-td": "tsx scripts/sync-cotacoes-td.ts",
