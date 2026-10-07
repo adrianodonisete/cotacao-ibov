@@ -19,7 +19,7 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
 
 - `my-wallet` — CloudPanel **site user**; home `/home/my-wallet`; owns the site at `/home/my-wallet/htdocs/my.wallet.local/`; owns nvm (Node) and the pm2 daemon.
  This is the user that must run the app.
-- `github-deployer` — **deploy-only** user (GitHub Actions writes the site dir with it). Its shell has system Node 18 — it cannot run Next.js 16 (requires Node ≥ 20.9), and it has no nvm/pm2 daemon of the site. Diagnostics as this user are fine; restarts must go through `my-wallet`.
+- `github-deployer` — **deploy-only** user (GitHub Actions writes the site dir with it). Its default shell has system Node 18 — it cannot run Next.js 16 (requires Node ≥ 20.9), and its PM2 daemon is separate. It belongs to the `my-wallet` group. In the deploy workflow, source `/home/my-wallet/.nvm/nvm.sh` and set `PM2_HOME=/home/my-wallet/.pm2`; this targets the site user's PM2 daemon, so the app process remains owned by `my-wallet`. Do not use the deployer's default Node or PM2 daemon for runtime.
 
 ## Node.js (CloudPanel manages via nvm)
 
@@ -32,7 +32,7 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
 
 ## pm2 lifecycle (pm2 is per-OS-user!)
 
-- pm2 daemons are per-OS-user. `pm2 status` as `github-deployer` shows **nothing** of `my-wallet`'s apps.
+- pm2 daemons are per-OS-user. Bare `pm2 status` as `github-deployer` shows **nothing** of `my-wallet`'s apps; set `PM2_HOME=/home/my-wallet/.pm2` to target the site user's daemon when running the deploy hook.
 - Start/restart as `my-wallet` (from the site dir, with nvm sourced):
   ```bash
   cd /home/my-wallet/htdocs/my.wallet.local/

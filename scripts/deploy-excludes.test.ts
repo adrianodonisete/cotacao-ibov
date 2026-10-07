@@ -16,3 +16,10 @@ test('deploy exclusions only match paths at the workspace root', () => {
 		);
 	}
 });
+
+test('post-deploy restart targets the site user Node and PM2 runtime', () => {
+	const workflow = readFileSync('.github/workflows/deploy.yml', 'utf8');
+
+	assert.match(workflow, /export NVM_DIR="\/home\/my-wallet\/\.nvm"/);
+	assert.match(workflow, /export PM2_HOME="\/home\/my-wallet\/\.pm2"/);
+});

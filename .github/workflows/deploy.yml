@@ -40,8 +40,9 @@ jobs:
           EXCLUDE: "/node_modules,/app,/pages,/components,/.git,/.github,/.cursor,/.env*"
           SCRIPT_AFTER: |
             set -e
-            export NVM_DIR="$HOME/.nvm"
+            export NVM_DIR="/home/my-wallet/.nvm"
             . "$NVM_DIR/nvm.sh"
+            export PM2_HOME="/home/my-wallet/.pm2"
             cd /home/my-wallet/htdocs/my.wallet.local/
             npm ci --omit=dev --no-audit --no-fund
             pm2 restart my-wallet --silent || pm2 start npm --name my-wallet -- start
