@@ -68,10 +68,12 @@ Tools (all on the `project-0-ibov-mem0` server): `add_memory`, `search_memories`
 # Deploy & VPS
 
 ## Deploy (GitHub Actions)
-- Workflow: `.github/workflows/deploy.yml` (push to `master`): checkout → setup-node → `npm ci` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH) to `/home/my-wallet/htdocs/my.wallet.local/`.
+- Workflow: `.github/workflows/deploy.yml` (push to `master`): checkout → setup-node → `npm ci` → `npm run test:deploy-excludes` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH) to `/home/my-wallet/htdocs/my.wallet.local/`.
 - `node-version: 24` in the workflow (NOT `node-size` — invalid). Match the server Node 24.21.0.
 - `EXCLUDE: /node_modules,/app,/pages,/components,/.git,/.github,/.cursor,/.env*` — exclusions are anchored at the transfer root so nested `.next/server/app` is deployed; `.env*` protects the server-only `.env.local` from being erased. `src` must be deployed because production cron scripts import shared modules from `src/lib` and `src/types`.
-- The deploy key authenticates as `github-deployer`; do not change `SSH_USER` to `my-wallet` unless `SSH_KEY` is also authorized for that account. `SCRIPT_AFTER` sources the site user's Node from `/home/my-wallet/.nvm`, sets `PM2_HOME=/home/my-wallet/.pm2`, then installs dependencies and restarts the site-user PM2 daemon. The app process remains owned by `my-wallet`.
+- The deploy key currently authenticates as `github-deployer`; it is not authorized for `my-wallet`. `SCRIPT_AFTER` sources the site user's Node from `/home/my-wallet/.nvm` and sets `PM2_HOME=/home/my-wallet/.pm2`, targeting the site user's PM2 daemon.
+- On the VPS, `node_modules` is currently owned by `root:root`. Consequently `npm ci` as `github-deployer` fails with `EACCES`; because `SCRIPT_AFTER` uses `set -e`, the PM2 restart is skipped. Make `node_modules` writable by the user running `npm ci` before relying on automatic dependency installation. To run the whole hook as `my-wallet`, authorize the configured `SSH_KEY` for that account first.
+- `easingthemes/ssh-deploy@v5.1.0` can report the job successful even when `SCRIPT_AFTER` logs a remote failure. Verify the hook log and a live `/_next/static/...css` request; do not use the green job result alone as proof of restart.
 
 ## VPS runtime (CloudPanel 2, InterServer)
 - Site user `my-wallet` (home `/home/my-wallet`); deploy-only user `github-deployer`. Runtime (nvm Node 24, pm2 daemon) belongs to `my-wallet`.

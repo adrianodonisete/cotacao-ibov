@@ -19,7 +19,7 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
 
 - `my-wallet` — CloudPanel **site user**; home `/home/my-wallet`; owns the site at `/home/my-wallet/htdocs/my.wallet.local/`; owns nvm (Node) and the pm2 daemon.
  This is the user that must run the app.
-- `github-deployer` — **deploy-only** user (GitHub Actions writes the site dir with it). Its default shell has system Node 18 — it cannot run Next.js 16 (requires Node ≥ 20.9), and its PM2 daemon is separate. It belongs to the `my-wallet` group. In the deploy workflow, source `/home/my-wallet/.nvm/nvm.sh` and set `PM2_HOME=/home/my-wallet/.pm2`; this targets the site user's PM2 daemon, so the app process remains owned by `my-wallet`. Do not use the deployer's default Node or PM2 daemon for runtime.
+- `github-deployer` — **deploy-only** user (GitHub Actions writes the site dir with it). Its default shell has system Node 18 — it cannot run Next.js 16 (requires Node ≥ 20.9), and its PM2 daemon is separate. It belongs to the `my-wallet` group. The current deploy key authenticates as this user, not as `my-wallet`. The deploy hook explicitly sources `/home/my-wallet/.nvm/nvm.sh` and sets `PM2_HOME=/home/my-wallet/.pm2`; this targets the site user's PM2 daemon, so the app process remains owned by `my-wallet`.
 
 ## Node.js (CloudPanel manages via nvm)
 
@@ -28,6 +28,7 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
   ```bash
   export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
   ```
+- When the deploy hook runs as `github-deployer`, `$HOME` is the wrong home for nvm; use `NVM_DIR=/home/my-wallet/.nvm` as the workflow does.
 - To change the site's Node version: CloudPanel → Site → Settings → Node.js Settings → Version; then log out/in the SSH session (Node.js versions are managed via nvm by CloudPanel).
 
 ## pm2 lifecycle (pm2 is per-OS-user!)
@@ -42,6 +43,11 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
   ```
 - Survive reboots: site-user crontab (`crontab -e`): `@reboot pm2 resurrect` (plus the `PATH` output of `echo $PATH`).
 - Troubleshoot: `pm2 status`, `pm2 logs my-wallet --lines 100`, `curl -s http://127.0.0.1:3000/`.
+
+## Deploy-hook permissions and verification
+
+- The current VPS has `node_modules` owned by `root:root`. `npm ci` from the GitHub deploy hook fails with `EACCES` at `node_modules/.bin`; the `set -e` hook stops before restarting PM2. Correct ownership/permissions so the selected install identity can write before relying on `npm ci`; changing the SSH user alone is insufficient while the directory remains root-owned.
+- The ssh-deploy action may log `Remote script failed` for `SCRIPT_AFTER` without failing the overall job. Check the hook output and verify that the running app serves the CSS file referenced by its current HTML.
 
 ## `.env.local` (runtime server env)
 
@@ -72,7 +78,7 @@ Browser → http://my.wallet.local  (Windows hosts: 162.35.122.199)
   icacls ".vscode/ssh_keys/id_rsa_github" /inheritance:r
   icacls ".vscode/ssh_keys/id_rsa_github" /grant:r "AesSedai:R"
   ```
-- Host: `162.35.122.199`; users: `github-deployer` (deploy / read-only diagnostics) and `my-wallet` (site runtime — restarts need this one).
+- Host: `162.35.122.199`; users: `github-deployer` (deploy / diagnostics; the workflow targets the site PM2 daemon with `PM2_HOME`) and `my-wallet` (site runtime and PM2 daemon owner; the app process must remain this user).
 
 ## Reference docs
 

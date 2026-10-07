@@ -8,7 +8,7 @@ alwaysApply: true
 ## Workflow `.github/workflows/deploy.yml`
 
 - Trigger: push to `master`.
-- Steps: `actions/checkout` → `actions/setup-node` → `npm ci` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH).
+- Steps: `actions/checkout` → `actions/setup-node` → `npm ci` → `npm run test:deploy-excludes` → `npm run build` → `easingthemes/ssh-deploy@v5.1.0` (rsync over SSH).
 
 ## Node version in CI
 
@@ -21,7 +21,8 @@ alwaysApply: true
 
 - `ARGS: "-rlgoDzvc --delete"` — `--delete` removes remote files that are **not** in the source (or excluded).
 - `EXCLUDE:` — comma-separated rsync `--exclude` patterns. **Excluded files are protected from both transfer AND deletion** with `--delete` (unless `--delete-excluded` is passed, which it is not):
-  `node_modules,app,pages,components,.git,.github,.env*`
+  `/node_modules,/app,/pages,/components,/.git,/.github,/.cursor,/.env*`
+  - Patterns are anchored at the transfer root. Keep `/app` anchored: unanchored `app` also excludes Next's nested `.next/server/app` and leaves stale manifests while static chunks are replaced, causing CSS/JS 404s.
   - `node_modules` exists on the runner (created by `npm ci`) but is deliberately NOT uploaded. The server must have `node_modules` installed itself (see VPS rule).
   - `src` must be deployed because the production cron scripts in `scripts/` import shared modules from `src/lib` and `src/types`.
   - `.env*` **MUST stay excluded**: `.env.local` is gitignored (not in repo) and lives only on the server. Without this exclusion, `--delete` erases it on every deploy.
@@ -29,26 +30,32 @@ alwaysApply: true
 
 ## Restart after deploy
 
-- The deploy only syncs files — it does **not** restart the app. Without a restart, the running `next start` keeps serving the old build.
+- The rsync transfer does **not** restart the app; `SCRIPT_AFTER` is responsible for that. On the current VPS, its `npm ci` permission error aborts the hook before PM2 restarts the app.
 
-- `SCRIPT_AFTER` runs on the server after rsync and restarts the app as the SSH user:
+- `SCRIPT_AFTER` runs on the server after rsync; the current workflow explicitly uses the site user's NVM and PM2 home even though SSH authenticates as `github-deployer`:
   ```yaml
   SCRIPT_AFTER: |
-    export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+    set -e
+    export NVM_DIR="/home/my-wallet/.nvm"
+    . "$NVM_DIR/nvm.sh"
+    export PM2_HOME="/home/my-wallet/.pm2"
     cd /home/my-wallet/htdocs/my.wallet.local/
+    npm ci --omit=dev --no-audit --no-fund
     pm2 restart my-wallet --silent || pm2 start npm --name my-wallet -- start
   ```
-- `SCRIPT_AFTER` only works if `REMOTE_USER` is the site user **`my-wallet`** — nvm and pm2 belong to that user. Running it as `github-deployer` (deploy-only user) fails (no nvm, wrong pm2 daemon).
+- The configured SSH key currently authenticates as `github-deployer`, not `my-wallet`. The explicit `NVM_DIR` and `PM2_HOME` route Node/PM2 commands to the site user's installation and daemon; the app process remains owned by the `my-wallet` PM2 daemon.
+- On the current VPS, `node_modules` is owned by `root:root`, so `npm ci` as `github-deployer` fails with `EACCES` before the PM2 restart. Correct ownership/permissions so the install identity can write; merely switching to `my-wallet` is insufficient while the files remain root-owned. To run the hook as `my-wallet`, first authorize the configured public key for that account.
 
 ## Secrets (GitHub → Settings → Secrets)
 
 - `SSH_HOST`: `162.35.122.199`
-- `SSH_USER`: **`my-wallet`** — the CloudPanel site user, so `SCRIPT_AFTER` has nvm + pm2.
-- `SSH_KEY`: private key; the public key (`id_rsa_github.pub` in `.vscode/ssh_keys/`) must be added to `my-wallet`'s `authorized_keys` (CloudPanel → Site → Settings → Site User Settings → SSH Keys).
+- `SSH_USER`: currently `github-deployer`, matching the account authorized by `SSH_KEY`. Do not change it to `my-wallet` unless the key authenticates to that account.
+- `SSH_KEY`: private key; its public key must be installed in the `authorized_keys` file for the selected SSH user.
 
 ## Gotchas
 
-- The deploy creates `node_modules` **on the runner**, not on the server. Server runtime deps must be installed once as `my-wallet` (see VPS rule).
+- The deploy creates `node_modules` **on the runner**, not on the server. Server runtime deps must be installed on the VPS with an identity that can write `node_modules` (see VPS rule).
+- `easingthemes/ssh-deploy@v5.1.0` may report `SCRIPT_AFTER` failure as a warning while the job remains green. Inspect the remote hook output and test live CSS URLs after deployment.
 - `--delete` deletes **any** server file not in the repo and not excluded (e.g., `.env.local` was erased once before `.env*` was added to EXCLUDE). Keep runtime-only files in `EXCLUDE`.
 - Fixing the deploy itself: don't put secrets in the repo — they stay in GitHub secrets only.
 
